@@ -326,6 +326,13 @@ input{font:inherit;color:inherit}
 }
 .slip-row.changed{border-color:var(--gold)}
 .slip-row.is-suspended{border-color:rgba(255,209,102,.5)}
+.slip-row.is-suspended .slip-odds{color:var(--muted)}
+.slip-notice{
+  display:flex;align-items:center;gap:7px;
+  background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.45);
+  color:#FFD166;font-size:12.5px;font-weight:700;line-height:1.35;
+  padding:8px 11px;border-radius:9px;margin-bottom:10px;
+}
 .slip-row-top{display:flex;align-items:flex-start;gap:8px}
 .slip-pick{font-weight:800;font-size:15px;flex:1}
 .slip-odds{color:var(--mint);font-weight:800;font-size:15.5px}

@@ -631,14 +631,16 @@ function slipHTML() {
     return banner + `<div class="slip-empty"><span class="sloth">🦥</span>
       Your slip is empty.<br>Tap any odds anywhere and your pick lands here —<br>nice and slow, no rush.</div>`;
   }
+  const blk0 = slipBlockers();
+  const suspN = [...state.slip.values()].filter(s => selSuspended(s)).length;
+  const suspNotice = blk0.suspended ? `<div class="slip-notice">⚠️ ${suspN === 1 ? 'One of your bets is suspended' : suspN + ' of your bets are suspended'} — remove ${suspN === 1 ? 'it' : 'them'} to place the rest.</div>` : '';
   const rows = sortedSlipSels().map(sel => {
     const m = matchById(sel.matchId);
     const susp = selSuspended(sel);
     const cur = currentOdds(sel);
     const ret = (parseFloat(sel.stake) || 0) * sel.odds;
     let flag = '';
-    if (susp) flag = `<div class="row-flag susp">🔒 Suspended — this market is paused. Remove the selection to place the rest.</div>`;
-    else if (sel.changed) flag = `<div class="row-flag warn">⚠️ Odds changed ${fmtOdds(sel.odds)} → ${fmtOdds(cur)}
+    if (!susp && sel.changed) flag = `<div class="row-flag warn">⚠️ Odds changed ${fmtOdds(sel.odds)} → ${fmtOdds(cur)}
       <button class="btn" data-action="accept-odds" data-key="${sel.key}">Accept new odds</button></div>`;
     return `<div class="slip-row${sel.changed && !susp ? ' changed' : ''}${susp ? ' is-suspended' : ''}" data-slip-row="${sel.key}">
       <div class="slip-row-top">
@@ -670,6 +672,7 @@ function slipHTML() {
   return banner + `
   <div class="slip-meta"><span class="singles">Singles <span>· ${t.count} selection${t.count === 1 ? '' : 's'}</span></span>
     <button class="clear-all" data-action="clear-slip">Clear all</button></div>
+  ${suspNotice}
   ${rows}
   <div class="slip-footer">
     <div class="tot-row"><span>Total stake</span><b id="totStake">${fmt(t.stake)} USDT</b></div>
@@ -677,7 +680,7 @@ function slipHTML() {
     <div class="tot-row ret"><span>Total potential return</span><b id="totReturn">${fmt(t.ret)} USDT</b></div>
     ${over ? `<div class="over-note">⚠️ Total stake exceeds your balance of ${fmt(state.balance)} USDT</div>` : ''}
     <button class="place-btn" id="placeBtn" data-action="place-bet" ${disabled ? 'disabled' : ''}>
-      ${blk.suspended ? '🔒 A selection is suspended' : blk.changed ? '⚠️ Review odds changes' : 'Place bet'}</button>
+      ${blk.changed && !blk.suspended ? '⚠️ Review odds changes' : 'Place bet'}</button>
     <div class="singles-note">Singles only in this book — no multiples, no funny business. 🦥</div>
     <div class="slip-settings-line">⚙️ Odds changes: <b>${{ manual: 'Always ask me', higher: 'Accept higher only', any: 'Accept any' }[state.slipSettings.oddsPolicy]}</b> · Order: <b>${{ added: 'First added first', newest: 'Newest first', kickoff: 'By kick-off' }[state.slipSettings.order]}</b>
       <button class="linklike" data-action="slip-settings">Change</button></div>
@@ -974,7 +977,7 @@ document.addEventListener('input', e => {
     if (pb) {
       const blk = slipBlockers();
       pb.disabled = t.stake <= 0 || blk.changed || blk.suspended;
-      pb.textContent = blk.suspended ? '🔒 A selection is suspended' : blk.changed ? '⚠️ Review odds changes' : 'Place bet';
+      pb.textContent = (blk.changed && !blk.suspended) ? '⚠️ Review odds changes' : 'Place bet';
     }
   }
 });
