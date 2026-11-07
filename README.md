@@ -10,7 +10,9 @@ Vanilla HTML, CSS and JavaScript — no frameworks, no build step, sample data o
 - **Live** — every in-play match, sport & competition filters, live clocks
 - **Football** — Premier League, Champions League, LaLiga, Serie A, Bundesliga with 1X2 odds and follow stars
 - **Match page** — Arsenal v Brighton (live): Popular, Goals, Halves, Handicaps, Goalscorers, Corners & Cards markets
-- **Bet slip + My bets** — singles only, stakes in USDT, cash out
+- **Bet slip + My bets** — singles only, stakes in USDT, cash out, and a slip
+  settings panel (⚙️): slip order plus an odds-change policy — always ask me,
+  accept higher odds only, or accept any odds — applied live by the simulation
 
 ## States covered
 Odds drift live and flash; a changed price must be accepted before betting;

@@ -167,6 +167,7 @@ const state = {
   railTab: 'slip',
   myBetsTab: 'open',
   slipBanner: null,        /* { type, html } */
+  slipSettings: { order: 'added', oddsPolicy: 'manual' }, /* added|newest|kickoff · manual|higher|any */
   bets: [
     { id: 'seed-won', pick: 'Manchester City', matchLabel: 'Manchester City v Chelsea', marketName: 'Match result',
       odds: 1.80, stake: 20.00, potential: 36.00, status: 'settled', result: 'Won', returned: 36.00, cashFactor: 0 },
@@ -499,13 +500,28 @@ function updateSlipBar() {
   $('#slipBarCount').textContent = state.slip.size;
   $('#slipBarOdds').textContent = fmtOdds(t.comb || 1);
 }
+function sortedSlipSels() {
+  const arr = Array.from(state.slip.values());
+  const ord = state.slipSettings.order;
+  if (ord === 'newest') return arr.reverse();
+  if (ord === 'kickoff') {
+    const keyOf = sel => {
+      const m = matchById(sel.matchId);
+      if (!m) return '9';
+      if (m.status === 'live') return '0' + String(999 - (m.minute || 0)).padStart(3, '0');
+      return '1' + (m.startTime || '99:99');
+    };
+    return arr.sort((a, b) => keyOf(a) < keyOf(b) ? -1 : keyOf(a) > keyOf(b) ? 1 : 0);
+  }
+  return arr;
+}
 function slipHTML() {
   const banner = state.slipBanner ? `<div class="slip-banner ${state.slipBanner.type}">${state.slipBanner.html}</div>` : '';
   if (!state.slip.size) {
     return banner + `<div class="slip-empty"><span class="sloth">🦥</span>
       Your slip is empty.<br>Tap any odds anywhere and your pick lands here —<br>nice and slow, no rush.</div>`;
   }
-  const rows = Array.from(state.slip.values()).map(sel => {
+  const rows = sortedSlipSels().map(sel => {
     const m = matchById(sel.matchId);
     const susp = selSuspended(sel);
     const cur = currentOdds(sel);
@@ -553,6 +569,8 @@ function slipHTML() {
     <button class="place-btn" id="placeBtn" data-action="place-bet" ${disabled ? 'disabled' : ''}>
       ${blk.suspended ? '🔒 A selection is suspended' : blk.changed ? '⚠️ Review odds changes' : 'Place bet'}</button>
     <div class="singles-note">Singles only in this book — no multiples, no funny business. 🦥</div>
+    <div class="slip-settings-line">⚙️ Odds changes: <b>${{ manual: 'Always ask me', higher: 'Accept higher only', any: 'Accept any' }[state.slipSettings.oddsPolicy]}</b> · Order: <b>${{ added: 'First added first', newest: 'Newest first', kickoff: 'By kick-off' }[state.slipSettings.order]}</b>
+      <button class="linklike" data-action="slip-settings">Change</button></div>
   </div>`;
 }
 function myBetsHTML() {
@@ -676,6 +694,47 @@ function updateBalance(bump) {
   el.textContent = fmt(state.balance);
   if (bump) { const p = el.closest('.balance-pill'); p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); }
 }
+/* ---------------- Bet slip settings ---------------- */
+function openSettings() {
+  const s = state.slipSettings;
+  const radio = (name, val, cur, title, desc) => `
+    <label class="set-row">
+      <input type="radio" name="${name}" value="${val}"${cur === val ? ' checked' : ''}>
+      <span class="set-text"><b>${title}</b><small>${desc}</small></span>
+    </label>`;
+  $('#settingsModal').innerHTML = `
+    <div class="modal-head"><span>⚙️ Bet Slip Settings</span>
+      <button class="modal-x" data-action="settings-close-btn" aria-label="Close">✕</button></div>
+    <div class="set-group">Slip order</div>
+    ${radio('ss-order', 'added', s.order, 'First added first', 'Picks stay in the order you tapped them.')}
+    ${radio('ss-order', 'newest', s.order, 'Newest first', 'Your latest pick sits on top of the slip.')}
+    ${radio('ss-order', 'kickoff', s.order, 'By kick-off time', 'Live matches first, then by start time.')}
+    <div class="set-group">Odds settings</div>
+    ${radio('ss-odds', 'manual', s.oddsPolicy, 'Always ask me', 'A changed price waits for your tap before you can bet.')}
+    ${radio('ss-odds', 'higher', s.oddsPolicy, 'Accept higher odds only', 'Better prices apply themselves; a drop still waits for you.')}
+    ${radio('ss-odds', 'any', s.oddsPolicy, 'Accept any odds', 'Prices update automatically, up or down. Full sloth trust.')}
+    <button class="btn primary apply-btn" data-action="settings-apply">Apply</button>`;
+  $('#settingsBackdrop').hidden = false;
+}
+function closeSettings() { $('#settingsBackdrop').hidden = true; }
+function applySettings() {
+  const o = document.querySelector('input[name="ss-order"]:checked');
+  const p = document.querySelector('input[name="ss-odds"]:checked');
+  if (o) state.slipSettings.order = o.value;
+  if (p) state.slipSettings.oddsPolicy = p.value;
+  /* an auto-accept policy also settles change flags that are already pending */
+  if (state.slipSettings.oddsPolicy !== 'manual') {
+    state.slip.forEach(sel => {
+      const cur = currentOdds(sel);
+      if (sel.changed && (state.slipSettings.oddsPolicy === 'any' || cur > sel.odds)) { sel.odds = cur; sel.changed = false; }
+    });
+  }
+  closeSettings();
+  refreshOddsButtons();
+  renderRail();
+  toast('⚙️ Slip settings applied');
+}
+
 function openRail(tab, openIt) {
   if (tab) state.railTab = tab;
   renderRail();
@@ -760,6 +819,10 @@ document.addEventListener('click', e => {
   }
   if (a === 'place-bet') { placeBet(); return; }
   if (a === 'cash-out') { cashOut(el.dataset.id); return; }
+  if (a === 'slip-settings') { openSettings(); return; }
+  if (a === 'settings-apply') { applySettings(); return; }
+  if (a === 'settings-close-btn') { closeSettings(); return; }
+  if (a === 'settings-close') { if (e.target.id === 'settingsBackdrop') closeSettings(); return; }
   if (a === 'avatar') { toast('🦥 Signed in as a guest sloth · Balance ' + fmt(state.balance) + ' USDT'); return; }
 });
 
@@ -801,6 +864,7 @@ function driftOddsOnce() {
   }));
   if (!all.length) return;
   const picks = [];
+  let slipAutoAccepted = false;
   for (let i = 0; i < 5; i++) picks.push(all[Math.floor(Math.random() * all.length)]);
   const changedKeys = new Set();
   picks.forEach(({ s }) => {
@@ -820,9 +884,15 @@ function driftOddsOnce() {
       btn.classList.add(s.wasUp ? 'flash-up' : 'flash-down');
     });
     const slipSel = state.slip.get(key);
-    if (slipSel && slipSel.odds !== s.odds) slipSel.changed = true;
+    if (slipSel && slipSel.odds !== s.odds) {
+      const pol = state.slipSettings.oddsPolicy;
+      if (pol === 'any' || (pol === 'higher' && s.odds > slipSel.odds)) {
+        slipSel.odds = s.odds; slipSel.changed = false; slipAutoAccepted = true;
+      } else { slipSel.changed = true; }
+    }
   });
-  if (Array.from(state.slip.values()).some(s => s.changed)) syncSlipAfterSim();
+  if (slipAutoAccepted) syncSlipAfterSim(true);
+  else if (Array.from(state.slip.values()).some(s => s.changed)) syncSlipAfterSim();
 }
 function maybeGoal() {
   if (Math.random() > 0.12) return;

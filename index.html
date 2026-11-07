@@ -49,6 +49,7 @@
         <button class="rail-tab" data-action="rail-tab" data-tab="slip" id="tabSlip">Bet Slip <span class="count-badge" id="slipCount">0</span></button>
         <button class="rail-tab" data-action="rail-tab" data-tab="mybets" id="tabMyBets">My Bets <span class="count-badge mint" id="myBetsCount">0</span></button>
       </div>
+      <button class="rail-gear" data-action="slip-settings" aria-label="Bet slip settings" title="Bet slip settings">⚙️</button>
       <button class="rail-close" data-action="close-rail" aria-label="Close">✕</button>
     </div>
     <div class="rail-body" id="railBody"></div>
@@ -70,6 +71,10 @@
   <button data-action="open-mybets"><span class="bn-ico">🎟️</span>My Bets</button>
   <button data-action="open-rail"><span class="bn-ico">🧾</span>Slip <span class="count-badge bn-badge" id="bnSlipCount">0</span></button>
 </nav>
+
+<div class="modal-backdrop" id="settingsBackdrop" data-action="settings-close" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Bet slip settings" id="settingsModal"></div>
+</div>
 
 <div class="toast" id="toast" role="status"></div>
 
