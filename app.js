@@ -466,6 +466,34 @@ function renderNav() {
   }).join('');
 }
 
+/* ---------------- Live ticker ---------------- */
+function tickerItemHTML(m) {
+  const score = m.scoreText ? esc(m.scoreText) : (m.scoreH + '–' + m.scoreA);
+  const clock = m.sport === 'Tennis' ? '' : ' · ' + clockLabel(m);
+  return `<button class="tick-item" data-action="open-match" data-id="${m.id}">
+    <span class="tick-teams">${esc(m.home)} <b data-tick-score="${m.id}">${score}</b> ${esc(m.away)}</span>
+    <span class="tick-clock" data-tick-clock="${m.id}">${esc(clock)}</span>
+  </button><span class="tick-dot">•</span>`;
+}
+function renderTicker() {
+  const live = MATCHES.filter(m => m.status === 'live');
+  const cnt = $('#tickerCount');
+  if (cnt) cnt.textContent = live.length || '';
+  const el = $('#tickerTrack');
+  if (!el) return;
+  if (!live.length) { el.innerHTML = ''; return; }
+  const items = live.map(tickerItemHTML).join('');
+  el.innerHTML = `<div class="ticker-inner"><div class="ticker-chunk">${items}</div><div class="ticker-chunk" aria-hidden="true">${items}</div></div>`;
+}
+function updateTicker() {
+  MATCHES.filter(m => m.status === 'live').forEach(m => {
+    const score = m.scoreText ? m.scoreText : (m.scoreH + '–' + m.scoreA);
+    $$('[data-tick-score="' + m.id + '"]').forEach(el => { el.textContent = score; });
+    const clock = m.sport === 'Tennis' ? '' : ' · ' + clockLabel(m);
+    $$('[data-tick-clock="' + m.id + '"]').forEach(el => { el.textContent = clock; });
+  });
+}
+
 /* ---------------- Bet slip ---------------- */
 function slipTotals() {
   let stake = 0, ret = 0, comb = 1, any = false;
@@ -955,11 +983,13 @@ function tick() {
     if (b.status === 'open') b.cashFactor = Math.min(0.95, Math.max(0.60, b.cashFactor + (Math.random() - 0.5) * 0.04));
   });
   if (state.railTab === 'mybets' && state.bets.some(b => b.status === 'open')) renderRail();
+  updateTicker();
   updateSlipBar();
 }
 setInterval(tick, 7000);
 
 /* ---------------- Init ---------------- */
 updateBalance(false);
+renderTicker();
 renderMain();
 renderRail();

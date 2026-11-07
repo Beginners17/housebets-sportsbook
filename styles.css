@@ -523,3 +523,27 @@ input{font:inherit;color:inherit}
   .modal-backdrop{align-items:flex-end;padding:0}
   .modal{width:100%;max-height:88vh;border-radius:20px 20px 0 0}
 }
+
+/* ---------- Live ticker ---------- */
+.ticker{
+  display:flex;align-items:stretch;height:37px;overflow:hidden;
+  background:var(--bg-deep);border-bottom:1px solid var(--line);
+}
+.ticker-live{
+  flex:none;display:flex;align-items:center;gap:6px;padding:0 13px;z-index:1;
+  background:var(--live);color:#fff;font-weight:800;font-size:12.5px;letter-spacing:.4px;
+}
+.ticker-track{flex:1;overflow:hidden;display:flex;align-items:center}
+.ticker-inner{display:flex;white-space:nowrap;will-change:transform;animation:tickScroll 45s linear infinite}
+.ticker:hover .ticker-inner{animation-play-state:paused}
+.ticker-chunk{display:inline-flex;align-items:center}
+.tick-item{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+  font-size:13px;color:var(--muted);cursor:pointer;
+}
+.tick-item b{color:var(--text)}
+.tick-item:hover .tick-teams{color:var(--mint)}
+.tick-clock{color:var(--gold);font-size:12.5px}
+.tick-dot{color:var(--panel-3);padding:0 2px}
+@keyframes tickScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){.ticker-inner{animation:none}}

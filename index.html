@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housebets — Sportsbook Prototype</title>
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -27,6 +27,11 @@
     <button class="avatar" data-action="avatar" title="Your account" aria-label="Your account">🦥</button>
   </div>
 </header>
+
+<div class="ticker" id="ticker" aria-label="Live scores ticker">
+  <span class="ticker-live">🔴 LIVE <b id="tickerCount"></b></span>
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
 
 <div class="layout">
 
@@ -78,6 +83,6 @@
 
 <div class="toast" id="toast" role="status"></div>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
