@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housebets — Sportsbook Prototype</title>
-<link rel="stylesheet" href="styles.css?v=9">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 
 <header class="topbar">
   <button class="logo" data-action="nav" data-view="home" aria-label="Housebets home">
-    <span class="logo-emoji">🦥</span><span class="logo-text">House<b>bets</b></span>
+    <img class="logo-img" src="logo.svg" alt="Housebets">
   </button>
 
   <div class="topbar-search">
@@ -37,7 +37,7 @@
 
   <aside class="sidebar" aria-label="Sports navigation">
     <div class="side-section">
-      <button class="nav-item" data-action="nav" data-view="home">🏠 <span>Sports Home</span></button>
+      <button class="nav-item" data-action="nav" data-view="home">⚽ <span>Sports Bet</span></button>
       <button class="nav-item" data-action="nav" data-view="live">🔴 <span>Live</span> <span class="live-count" id="liveCount"></span></button>
       <button class="nav-item" data-action="nav" data-view="football">⚽ <span>Football</span></button>
     </div>
@@ -71,7 +71,7 @@
 
 <nav class="bottomnav" aria-label="Mobile navigation">
   <button data-action="open-menu"><span class="bn-ico">☰</span>More</button>
-  <button data-action="nav" data-view="home"><span class="bn-ico">🏠</span>Sports</button>
+  <button data-action="nav" data-view="home"><span class="bn-ico">⚽</span>Sports</button>
   <button class="bn-slip" data-action="open-rail"><span class="bn-ico">🧾</span>Slip <span class="count-badge bn-badge" id="bnSlipCount">0</span></button>
   <button data-action="open-mybets"><span class="bn-ico">🎟️</span>My Bets</button>
 </nav>
@@ -79,7 +79,7 @@
 <div class="drawer-backdrop" id="drawerBackdrop" data-action="close-menu" hidden></div>
 <aside class="drawer" id="drawer" aria-label="Menu">
   <div class="drawer-head">
-    <span class="drawer-logo"><span class="logo-emoji">🦥</span><span class="drawer-logo-text">House<b>bets</b></span></span>
+    <span class="drawer-logo"><img class="logo-img" src="logo.svg" alt="Housebets"></span>
     <button class="drawer-close" data-action="close-menu" aria-label="Close menu">✕</button>
   </div>
   <div class="drawer-body" id="drawerBody"></div>
@@ -91,6 +91,6 @@
 
 <div class="toast" id="toast" role="status"></div>
 
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

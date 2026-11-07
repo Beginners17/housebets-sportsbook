@@ -333,7 +333,7 @@ function viewHome() {
   const feedTitle = state.homeMode === 'live' ? '🔴 Live now' : '🕐 Upcoming';
   const sportSuffix = state.homeSport === 'All' ? '' : ' · ' + (state.homeSport === 'Football' ? 'Soccer' : state.homeSport);
   return `
-  <div class="view-head"><h1>🏠 Sports Home</h1><span class="sub">The sloth has picked today's finest fixtures.</span></div>
+  <div class="view-head"><h1>⚽ Sports Bet</h1><span class="sub">The sloth has picked today's finest fixtures.</span></div>
   ${followChips()}
   <div class="feed-controls">
     ${modeBtns}
@@ -516,7 +516,7 @@ function renderDrawer() {
   const pageItem = (action, attrs, icon, label, badge, active) =>
     `<button class="nav-item${active ? ' active' : ''}" data-action="${action}" ${attrs}>${icon} <span>${label}</span>${badge || ''}</button>`;
   const pages = [
-    pageItem('nav', 'data-view="home"', '🏠', 'Sports home', '', state.view === 'home'),
+    pageItem('nav', 'data-view="home"', '⚽', 'Sports Bet', '', state.view === 'home'),
     pageItem('nav', 'data-view="live"', '🔴', 'Live', `<span class="sport-count">${liveN}</span>`, state.view === 'live'),
     pageItem('nav', 'data-view="football"', '⚽', 'Football', '', state.view === 'football'),
     pageItem('open-rail', '', '🧾', 'Bet slip and my bets', '', false),

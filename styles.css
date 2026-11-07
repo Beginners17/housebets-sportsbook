@@ -49,6 +49,7 @@ input{font:inherit;color:inherit}
 .logo{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-s)}
 .logo:hover{background:var(--panel)}
 .logo-emoji{font-size:26px;line-height:1}
+.logo-img{height:20px;width:auto;display:block}
 .logo-text{font-size:21px;font-weight:600;letter-spacing:.2px;color:var(--mint)}
 .logo-text b{color:var(--text);font-weight:800}
 .topbar-search{
@@ -601,14 +602,7 @@ input{font:inherit;color:inherit}
   }
 }
 
-/* ---------- Bottom nav: raised circular Slip button ---------- */
-.bottomnav .bn-slip .bn-ico{
-  width:46px;height:46px;border-radius:50%;flex:none;
-  background:var(--mint);color:#0A1C24;font-size:21px;
-  display:flex;align-items:center;justify-content:center;
-  margin-top:-20px;border:3px solid var(--bg-deep);box-shadow:var(--shadow);
-}
-.bottomnav .bn-slip .bn-badge{top:-16px;right:calc(50% - 27px)}
+/* ---------- Bottom nav: Slip button flat, level with the rest (Hyde 8 Nov) ---------- */
 
 /* ---------- Row league label + stacked More/Hide toggle ---------- */
 .row-comp{
