@@ -234,7 +234,7 @@ function rowOdds(m) {
   const strip = `<div class="row-suspended${mk.suspended ? '' : ' hidden'}" data-row-susp="${m.id}">🔒 Suspended</div>`;
   return `<div class="row-odds${mk.suspended ? ' hidden' : ''}" data-row-odds="${m.id}">${btns}</div>${strip}`;
 }
-function matchRow(m, extraCls) {
+function matchRow(m, extraCls, showComp) {
   const status = m.status === 'live'
     ? `<span class="live-badge">LIVE</span><span class="clock" data-clock-for="${m.id}">${clockLabel(m)}</span>`
     : `<span class="start-time">${esc(m.startTime || '')}</span><span class="start-date">${esc(m.startDate || '')}</span>`;
@@ -243,6 +243,7 @@ function matchRow(m, extraCls) {
     : '';
   const score2 = m.status === 'live' && !m.scoreText ? `<span class="team-score">${m.scoreA}</span>` : '';
   return `<div class="match-row${extraCls ? ' ' + extraCls : ''}">
+    ${showComp ? `<div class="row-comp">${esc(m.competition)}</div>` : ''}
     <div class="row-status">${status}</div>
     <div class="row-teams" data-action="open-match" data-id="${m.id}" role="button" title="Open match page">
       <div class="team-line">${crest(m.home)}<span class="team-name">${esc(m.home)}</span>${score}</div>
@@ -289,7 +290,7 @@ function viewHome() {
   const modeBtns = `
     <div class="mode-toggle" role="tablist" aria-label="Live or upcoming">
       <button class="mode-btn live-btn${state.homeMode === 'live' ? ' active' : ''}" data-action="home-mode" data-mode="live">🔴 Live <span class="n">${live.length}</span></button>
-      <button class="mode-btn${state.homeMode === 'soon' ? ' active' : ''}" data-action="home-mode" data-mode="soon">🕐 Starting soon <span class="n">${soon.length}</span></button>
+      <button class="mode-btn${state.homeMode === 'soon' ? ' active' : ''}" data-action="home-mode" data-mode="soon">🕐 Upcoming <span class="n">${soon.length}</span></button>
     </div>`;
   const sportTabs = ['All'].concat(SPORTS).map(s => {
     const n = s === 'All' ? pool.length : pool.filter(m => m.sport === s).length;
@@ -307,16 +308,16 @@ function viewHome() {
         const label = s === 'Football' ? 'Soccer' : s;
         const gkey = state.homeMode + ':' + s;
         const expanded = state.expandedGroups.has(gkey);
-        const rows = list.map((m, i) => matchRow(m, i >= 3 ? 'extra-row' : '')).join('');
+        const rows = list.map((m, i) => matchRow(m, i >= 3 ? 'extra-row' : '', true)).join('');
         const toggle = list.length > 3
-          ? `<button class="group-toggle" data-action="toggle-group" data-group="${gkey}">${expanded ? 'Hide ⌃' : 'More ⌄'}</button>` : '';
+          ? `<button class="group-toggle" data-action="toggle-group" data-group="${gkey}">${expanded ? '<span class="gt-arrow">⌃</span><span>Hide</span>' : '<span>More</span><span class="gt-arrow">⌄</span>'}</button>` : '';
         return `<div class="feed-group${expanded ? ' expanded' : ''}"><div class="sport-divider"><span>${SPORT_ICONS[s]} ${esc(label)}</span><span class="sd-count">${list.length} match${list.length === 1 ? '' : 'es'}</span></div>${rows}${toggle}</div>`;
       }).join('');
     } else {
-      feedBody = feed.map(matchRow).join('');
+      feedBody = feed.map(m => matchRow(m, '', true)).join('');
     }
   } else if (state.homeMode === 'live') {
-    feedBody = emptyState('No live matches for this filter', 'Nothing in play here right now. Switch to Starting soon to see what is next.');
+    feedBody = emptyState('No live matches for this filter', 'Nothing in play here right now. Switch to Upcoming to see what is next.');
   } else {
     feedBody = emptyState('Nothing starting soon here', 'No upcoming fixtures for this filter. The sloth is still filling the board.');
   }
@@ -329,7 +330,7 @@ function viewHome() {
       <span class="cc-sub">${list.length} matches${nl ? ' · ' + nl + ' live now' : ''}</span>
       <span class="cc-go">View fixtures ›</span></button>`;
   }).join('');
-  const feedTitle = state.homeMode === 'live' ? '🔴 Live now' : '🕐 Starting soon';
+  const feedTitle = state.homeMode === 'live' ? '🔴 Live now' : '🕐 Upcoming';
   const sportSuffix = state.homeSport === 'All' ? '' : ' · ' + (state.homeSport === 'Football' ? 'Soccer' : state.homeSport);
   return `
   <div class="view-head"><h1>🏠 Sports Home</h1><span class="sub">The sloth has picked today's finest fixtures.</span></div>
@@ -350,7 +351,7 @@ function viewHome() {
 
 function viewLive() {
   const liveAll = MATCHES.filter(m => m.status === 'live');
-  const sportsPresent = ['All'].concat(SPORTS); /* all sports listed, even 0 live — picking one shows the empty state + Starting soon fallback */
+  const sportsPresent = ['All'].concat(SPORTS); /* all sports listed, even 0 live — picking one shows the empty state + Upcoming fallback */
   const sportChips = sportsPresent.map(s => {
     const n = s === 'All' ? liveAll.length : liveAll.filter(m => m.sport === s).length;
     return `<button class="chip${state.liveSport === s ? ' active' : ''}" data-action="live-sport" data-sport="${esc(s)}">${s === 'All' ? '🎯 All' : SPORT_ICONS[s] + ' ' + s} <span class="n">${n}</span></button>`;
@@ -369,7 +370,7 @@ function viewLive() {
   } else {
     const soon = MATCHES.filter(m => m.status === 'upcoming');
     body = `<section class="section">${emptyState('Nothing live here right now', 'That filter combo has no in-play matches. Here is what starts soon instead.')}</section>
-      <section class="section"><div class="section-head">🕒 Starting soon <span class="count">${soon.length} matches</span></div>
+      <section class="section"><div class="section-head">🕒 Upcoming <span class="count">${soon.length} matches</span></div>
       <div class="match-list">${soon.map(matchRow).join('')}</div></section>`;
   }
   return `
