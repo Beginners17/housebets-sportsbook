@@ -310,7 +310,7 @@ function viewHome() {
 
 function viewLive() {
   const liveAll = MATCHES.filter(m => m.status === 'live');
-  const sportsPresent = ['All'].concat(SPORTS.filter(s => liveAll.some(m => m.sport === s)));
+  const sportsPresent = ['All'].concat(SPORTS); /* all sports listed, even 0 live — picking one shows the empty state + Starting soon fallback */
   const sportChips = sportsPresent.map(s => {
     const n = s === 'All' ? liveAll.length : liveAll.filter(m => m.sport === s).length;
     return `<button class="chip${state.liveSport === s ? ' active' : ''}" data-action="live-sport" data-sport="${esc(s)}">${s === 'All' ? '🎯 All' : SPORT_ICONS[s] + ' ' + s} <span class="n">${n}</span></button>`;
