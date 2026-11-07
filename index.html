@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housebets — Sportsbook Prototype</title>
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
@@ -71,10 +71,8 @@
 
 <nav class="bottomnav" aria-label="Mobile navigation">
   <button data-action="nav" data-view="home"><span class="bn-ico">🏠</span>Home</button>
-  <button data-action="nav" data-view="live"><span class="bn-ico">🔴</span>Live</button>
-  <button data-action="nav" data-view="football"><span class="bn-ico">⚽</span>Football</button>
+  <button class="bn-slip" data-action="open-rail"><span class="bn-ico">🧾</span>Slip <span class="count-badge bn-badge" id="bnSlipCount">0</span></button>
   <button data-action="open-mybets"><span class="bn-ico">🎟️</span>My Bets</button>
-  <button data-action="open-rail"><span class="bn-ico">🧾</span>Slip <span class="count-badge bn-badge" id="bnSlipCount">0</span></button>
 </nav>
 
 <div class="modal-backdrop" id="settingsBackdrop" data-action="settings-close" hidden>
@@ -83,6 +81,6 @@
 
 <div class="toast" id="toast" role="status"></div>
 
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

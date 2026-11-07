@@ -161,6 +161,7 @@ const state = {
   liveComp: 'All',
   homeMode: 'live',        /* live | soon */
   homeSport: 'All',
+  expandedGroups: new Set(), /* "live:Football" etc. — mobile show-all state per sport group */
   query: '',
   marketQuery: '',
   matchGroup: 'All',
@@ -233,7 +234,7 @@ function rowOdds(m) {
   const strip = `<div class="row-suspended${mk.suspended ? '' : ' hidden'}" data-row-susp="${m.id}">🔒 Suspended</div>`;
   return `<div class="row-odds${mk.suspended ? ' hidden' : ''}" data-row-odds="${m.id}">${btns}</div>${strip}`;
 }
-function matchRow(m) {
+function matchRow(m, extraCls) {
   const status = m.status === 'live'
     ? `<span class="live-badge">LIVE</span><span class="clock" data-clock-for="${m.id}">${clockLabel(m)}</span>`
     : `<span class="start-time">${esc(m.startTime || '')}</span><span class="start-date">${esc(m.startDate || '')}</span>`;
@@ -241,7 +242,7 @@ function matchRow(m) {
     ? `<span class="team-score" data-score-for="${m.id}">${m.scoreText ? esc(m.scoreText) : m.scoreH}</span>`
     : '';
   const score2 = m.status === 'live' && !m.scoreText ? `<span class="team-score">${m.scoreA}</span>` : '';
-  return `<div class="match-row">
+  return `<div class="match-row${extraCls ? ' ' + extraCls : ''}">
     <div class="row-status">${status}</div>
     <div class="row-teams" data-action="open-match" data-id="${m.id}" role="button" title="Open match page">
       <div class="team-line">${crest(m.home)}<span class="team-name">${esc(m.home)}</span>${score}</div>
@@ -304,7 +305,12 @@ function viewHome() {
       feedBody = SPORTS.filter(s => feed.some(m => m.sport === s)).map(s => {
         const list = feed.filter(m => m.sport === s);
         const label = s === 'Football' ? 'Soccer' : s;
-        return `<div class="sport-divider"><span>${SPORT_ICONS[s]} ${esc(label)}</span><span class="sd-count">${list.length} match${list.length === 1 ? '' : 'es'}</span></div>` + list.map(matchRow).join('');
+        const gkey = state.homeMode + ':' + s;
+        const expanded = state.expandedGroups.has(gkey);
+        const rows = list.map((m, i) => matchRow(m, i >= 3 ? 'extra-row' : '')).join('');
+        const toggle = list.length > 3
+          ? `<button class="group-toggle" data-action="toggle-group" data-group="${gkey}">${expanded ? 'Hide ⌃' : 'More ⌄'}</button>` : '';
+        return `<div class="feed-group${expanded ? ' expanded' : ''}"><div class="sport-divider"><span>${SPORT_ICONS[s]} ${esc(label)}</span><span class="sd-count">${list.length} match${list.length === 1 ? '' : 'es'}</span></div>${rows}${toggle}</div>`;
       }).join('');
     } else {
       feedBody = feed.map(matchRow).join('');
@@ -843,6 +849,11 @@ document.addEventListener('click', e => {
   if (a === 'live-comp') { state.liveComp = el.dataset.comp; renderMain(); return; }
   if (a === 'home-mode') { state.homeMode = el.dataset.mode; renderMain(); return; }
   if (a === 'home-sport') { state.homeSport = el.dataset.sport; renderMain(); return; }
+  if (a === 'toggle-group') {
+    const k = el.dataset.group;
+    if (state.expandedGroups.has(k)) state.expandedGroups.delete(k); else state.expandedGroups.add(k);
+    renderMain(); return;
+  }
   if (a === 'match-group') { state.matchGroup = el.dataset.group; renderMain(); return; }
   if (a === 'back') { go(state.currentMatchId && (matchById(state.currentMatchId) || {}).sport === 'Football' ? 'football' : 'home'); return; }
   if (a === 'follow') {

@@ -588,3 +588,24 @@ input{font:inherit;color:inherit}
 }
 .sport-divider:first-child{border-top:none}
 .sport-divider .sd-count{color:var(--muted);letter-spacing:.2px;text-transform:none}
+
+/* ---------- Feed groups: spacing + mobile show-3 collapse ---------- */
+.feed-group + .feed-group{margin-top:18px}
+.group-toggle{display:none}
+@media (max-width:1023px){
+  .feed-group:not(.expanded) .extra-row{display:none}
+  .group-toggle{
+    display:flex;align-items:center;justify-content:center;gap:6px;width:100%;
+    padding:11px;color:var(--mint);font-weight:700;font-size:13.5px;
+    border-top:1px solid var(--line);background:var(--panel);cursor:pointer;
+  }
+}
+
+/* ---------- Bottom nav: raised circular Slip button ---------- */
+.bottomnav .bn-slip .bn-ico{
+  width:46px;height:46px;border-radius:50%;flex:none;
+  background:var(--mint);color:#0A1C24;font-size:21px;
+  display:flex;align-items:center;justify-content:center;
+  margin-top:-20px;border:3px solid var(--bg-deep);box-shadow:var(--shadow);
+}
+.bottomnav .bn-slip .bn-badge{top:-16px;right:calc(50% - 27px)}
