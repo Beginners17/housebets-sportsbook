@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housebets — Sportsbook Prototype</title>
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 
@@ -70,10 +70,20 @@
 </button>
 
 <nav class="bottomnav" aria-label="Mobile navigation">
-  <button data-action="nav" data-view="home"><span class="bn-ico">🏠</span>Home</button>
+  <button data-action="open-menu"><span class="bn-ico">☰</span>More</button>
+  <button data-action="nav" data-view="home"><span class="bn-ico">🏠</span>Sports</button>
   <button class="bn-slip" data-action="open-rail"><span class="bn-ico">🧾</span>Slip <span class="count-badge bn-badge" id="bnSlipCount">0</span></button>
   <button data-action="open-mybets"><span class="bn-ico">🎟️</span>My Bets</button>
 </nav>
+
+<div class="drawer-backdrop" id="drawerBackdrop" data-action="close-menu" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Menu">
+  <div class="drawer-head">
+    <span class="drawer-logo"><span class="logo-emoji">🦥</span><span class="drawer-logo-text">House<b>bets</b></span></span>
+    <button class="drawer-close" data-action="close-menu" aria-label="Close menu">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
 
 <div class="modal-backdrop" id="settingsBackdrop" data-action="settings-close" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-label="Bet slip settings" id="settingsModal"></div>
@@ -81,6 +91,6 @@
 
 <div class="toast" id="toast" role="status"></div>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

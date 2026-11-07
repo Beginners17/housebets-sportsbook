@@ -504,6 +504,48 @@ function renderNav() {
                    (s !== 'Football' && state.view === 'match' && (matchById(state.currentMatchId) || {}).sport === s);
     return `<button class="sport-item${active ? ' active' : ''}" data-action="sport" data-sport="${esc(s)}">${SPORT_ICONS[s]} <span>${esc(s)}</span><span class="sport-count">${n}</span></button>`;
   }).join('');
+  renderDrawer();
+}
+
+/* ---------------- Menu drawer ---------------- */
+const LEAGUE_BADGES = { 'Premier League': ['PL', '#4B2E83'], 'Champions League': ['UCL', '#274690'], 'LaLiga': ['LL', '#D64545'], 'Serie A': ['SA', '#2E7CC4'], 'Bundesliga': ['BL', '#C4373C'] };
+function renderDrawer() {
+  const el = $('#drawerBody');
+  if (!el) return;
+  const liveN = MATCHES.filter(m => m.status === 'live').length;
+  const pageItem = (action, attrs, icon, label, badge, active) =>
+    `<button class="nav-item${active ? ' active' : ''}" data-action="${action}" ${attrs}>${icon} <span>${label}</span>${badge || ''}</button>`;
+  const pages = [
+    pageItem('nav', 'data-view="home"', '🏠', 'Sports home', '', state.view === 'home'),
+    pageItem('nav', 'data-view="live"', '🔴', 'Live', `<span class="sport-count">${liveN}</span>`, state.view === 'live'),
+    pageItem('nav', 'data-view="football"', '⚽', 'Football', '', state.view === 'football'),
+    pageItem('open-rail', '', '🧾', 'Bet slip and my bets', '', false),
+    pageItem('avatar', '', '👤', 'Account', '', false),
+  ].join('');
+  const sports = SPORTS.map(s => {
+    const n = MATCHES.filter(m => m.sport === s).length;
+    const active = s !== 'Football' && state.view === 'sport' && state.sport === s;
+    return `<button class="sport-item${active ? ' active' : ''}" data-action="sport" data-sport="${esc(s)}">${SPORT_ICONS[s]} <span>${esc(s)}</span><span class="sport-count">${n}</span></button>`;
+  }).join('');
+  const comps = FOOTBALL_LEAGUES.map(c => {
+    const b = LEAGUE_BADGES[c] || [initials(c), '#33565F'];
+    return `<button class="sport-item" data-action="comp-card" data-comp="${esc(c)}"><span class="lg-badge" style="background:${b[1]}">${b[0]}</span> <span>${esc(c)}</span></button>`;
+  }).join('');
+  const follows = Array.from(state.follows).map(name => FOOTBALL_LEAGUES.includes(name)
+    ? `<button class="sport-item" data-action="comp-card" data-comp="${esc(name)}"><span class="star-ico">⭐</span> <span>${esc(name)}</span></button>`
+    : `<button class="sport-item" data-action="drawer-team" data-name="${esc(name)}"><span class="star-ico">⭐</span> <span>${esc(name)}</span></button>`).join('');
+  el.innerHTML = `
+    <div class="side-section">${pages}</div>
+    <div class="side-title">Sports</div>
+    ${sports}
+    <div class="side-title">Top competitions</div>
+    ${comps}
+    ${follows ? `<div class="side-title">Following</div>${follows}` : ''}`;
+}
+function openMenu() { renderDrawer(); $('#drawer').classList.add('open'); $('#drawerBackdrop').hidden = false; }
+function closeMenu() {
+  const d = $('#drawer'); if (d) d.classList.remove('open');
+  const b = $('#drawerBackdrop'); if (b) b.hidden = true;
 }
 
 /* ---------------- Live ticker ---------------- */
@@ -836,15 +878,16 @@ document.addEventListener('click', e => {
   if (a === 'nav') {
     const v = el.dataset.view;
     if (v === 'home') { state.query = ''; const gs = $('#globalSearch'); if (gs) gs.value = ''; }
-    go(v); return;
+    closeMenu(); go(v); return;
   }
   if (a === 'sport') {
     const s = el.dataset.sport;
+    closeMenu();
     if (s === 'Football') go('football');
     else go('sport', { sport: s });
     return;
   }
-  if (a === 'comp-card') { go('football', { footballComp: el.dataset.comp }); return; }
+  if (a === 'comp-card') { closeMenu(); go('football', { footballComp: el.dataset.comp }); return; }
   if (a === 'football-comp') { state.footballComp = el.dataset.comp; renderMain(); return; }
   if (a === 'live-sport') { state.liveSport = el.dataset.sport; state.liveComp = 'All'; renderMain(); return; }
   if (a === 'live-comp') { state.liveComp = el.dataset.comp; renderMain(); return; }
@@ -866,9 +909,15 @@ document.addEventListener('click', e => {
   if (a === 'clear-search') { state.query = ''; const gs = $('#globalSearch'); if (gs) gs.value = ''; renderMain(); return; }
   if (a === 'clear-market-search') { state.marketQuery = ''; renderMain(); return; }
   if (a === 'rail-tab') { state.railTab = el.dataset.tab; renderRail(); openRail(null, true); return; }
-  if (a === 'open-rail') { openRail('slip', true); return; }
-  if (a === 'open-mybets') { openRail('mybets', true); return; }
+  if (a === 'open-rail') { closeMenu(); openRail('slip', true); return; }
+  if (a === 'open-mybets') { closeMenu(); openRail('mybets', true); return; }
   if (a === 'close-rail') { closeRail(); return; }
+  if (a === 'open-menu') { openMenu(); return; }
+  if (a === 'close-menu') { closeMenu(); return; }
+  if (a === 'drawer-team') {
+    state.query = el.dataset.name; const gs = $('#globalSearch'); if (gs) gs.value = state.query;
+    closeMenu(); go('home'); return;
+  }
   if (a === 'mb-tab') { state.myBetsTab = el.dataset.mtab; renderRail(); return; }
   if (a === 'remove-sel') {
     state.slip.delete(el.dataset.key); state.slipBanner = null;
@@ -898,7 +947,7 @@ document.addEventListener('click', e => {
   if (a === 'settings-apply') { applySettings(); return; }
   if (a === 'settings-close-btn') { closeSettings(); return; }
   if (a === 'settings-close') { if (e.target.id === 'settingsBackdrop') closeSettings(); return; }
-  if (a === 'avatar') { toast('🦥 Signed in as a guest sloth · Balance ' + fmt(state.balance) + ' USDT'); return; }
+  if (a === 'avatar') { closeMenu(); toast('🦥 Signed in as a guest sloth · Balance ' + fmt(state.balance) + ' USDT'); return; }
 });
 
 document.addEventListener('input', e => {
