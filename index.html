@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housebets — Sportsbook Prototype</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <button class="logo" data-action="nav" data-view="home" aria-label="Housebets home">
+    <span class="logo-emoji">🦥</span><span class="logo-text">House<b>bets</b></span>
+  </button>
+
+  <div class="topbar-search">
+    <span class="search-ico" aria-hidden="true">🔍</span>
+    <input id="globalSearch" type="search" placeholder="Search teams, players or leagues" autocomplete="off">
+  </div>
+
+  <div class="topbar-right">
+    <div class="balance-pill" title="Your balance">
+      <span class="bal-label">Balance</span>
+      <span id="balanceValue">1,250.00</span>
+      <span class="usdt">USDT</span>
+    </div>
+    <button class="avatar" data-action="avatar" title="Your account" aria-label="Your account">🦥</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <aside class="sidebar" aria-label="Sports navigation">
+    <div class="side-section">
+      <button class="nav-item" data-action="nav" data-view="home">🏠 <span>Sports Home</span></button>
+      <button class="nav-item" data-action="nav" data-view="live">🔴 <span>Live</span> <span class="live-count" id="liveCount"></span></button>
+      <button class="nav-item" data-action="nav" data-view="football">⚽ <span>Football</span></button>
+    </div>
+    <div class="side-title">Sports</div>
+    <div id="sportList"></div>
+    <div class="side-note">🦥 Slow and steady<br>wins the bet.</div>
+  </aside>
+
+  <main id="main" class="main"></main>
+
+  <aside class="rail" id="rail" aria-label="Bet slip and my bets">
+    <div class="rail-head">
+      <div class="rail-tabs" role="tablist">
+        <button class="rail-tab" data-action="rail-tab" data-tab="slip" id="tabSlip">Bet Slip <span class="count-badge" id="slipCount">0</span></button>
+        <button class="rail-tab" data-action="rail-tab" data-tab="mybets" id="tabMyBets">My Bets <span class="count-badge mint" id="myBetsCount">0</span></button>
+      </div>
+      <button class="rail-close" data-action="close-rail" aria-label="Close">✕</button>
+    </div>
+    <div class="rail-body" id="railBody"></div>
+  </aside>
+
+</div>
+
+<div class="sheet-backdrop" id="sheetBackdrop" data-action="close-rail"></div>
+
+<button class="slipbar" id="slipBar" data-action="open-rail" hidden>
+  <span class="slipbar-left">🧾 Bet Slip <span class="count-badge" id="slipBarCount">0</span></span>
+  <span class="slipbar-right">Total odds <b id="slipBarOdds">1.00</b> ›</span>
+</button>
+
+<nav class="bottomnav" aria-label="Mobile navigation">
+  <button data-action="nav" data-view="home"><span class="bn-ico">🏠</span>Home</button>
+  <button data-action="nav" data-view="live"><span class="bn-ico">🔴</span>Live</button>
+  <button data-action="nav" data-view="football"><span class="bn-ico">⚽</span>Football</button>
+  <button data-action="open-mybets"><span class="bn-ico">🎟️</span>My Bets</button>
+  <button data-action="open-rail"><span class="bn-ico">🧾</span>Slip <span class="count-badge bn-badge" id="bnSlipCount">0</span></button>
+</nav>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
