@@ -574,4 +574,17 @@ input{font:inherit;color:inherit}
 .mode-btn.active .n{background:var(--mint);color:#0A1C24}
 .mode-btn.live-btn.active{border-color:var(--live)}
 .mode-btn.live-btn.active .n{background:var(--live);color:#fff}
-.feed-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.feed-tabs{
+  display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;
+  padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.feed-tabs::-webkit-scrollbar{display:none}
+.feed-tabs .chip{flex:none}
+.sport-divider{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 9px;font-size:12.5px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.8px;color:var(--mint);
+  background:var(--panel-2);border-top:1px solid var(--line);
+}
+.sport-divider:first-child{border-top:none}
+.sport-divider .sd-count{color:var(--muted);letter-spacing:.2px;text-transform:none}

@@ -300,7 +300,15 @@ function viewHome() {
   if (noResults) {
     feedBody = emptyState('Nothing found for "' + state.query + '"', 'No teams, players or leagues match that search. Try "Arsenal", "LaLiga" or clear the search.', `<p style="margin-top:12px"><button class="btn primary" data-action="clear-search">Clear search</button></p>`);
   } else if (feed.length) {
-    feedBody = feed.map(matchRow).join('');
+    if (state.homeSport === 'All') {
+      feedBody = SPORTS.filter(s => feed.some(m => m.sport === s)).map(s => {
+        const list = feed.filter(m => m.sport === s);
+        const label = s === 'Football' ? 'Soccer' : s;
+        return `<div class="sport-divider"><span>${SPORT_ICONS[s]} ${esc(label)}</span><span class="sd-count">${list.length} match${list.length === 1 ? '' : 'es'}</span></div>` + list.map(matchRow).join('');
+      }).join('');
+    } else {
+      feedBody = feed.map(matchRow).join('');
+    }
   } else if (state.homeMode === 'live') {
     feedBody = emptyState('No live matches for this filter', 'Nothing in play here right now. Switch to Starting soon to see what is next.');
   } else {
