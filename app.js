@@ -945,7 +945,15 @@ document.addEventListener('click', e => {
     return;
   }
   if (a === 'place-bet') { placeBet(); return; }
-  if (a === 'cash-out') { cashOut(el.dataset.id); return; }
+  if (a === 'cash-out') {
+    if (el.classList.contains('sweeping')) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { cashOut(el.dataset.id); return; }
+    el.classList.add('sweeping');
+    el.disabled = true;
+    el.textContent = '💰 Cashing out…';
+    setTimeout(() => cashOut(el.dataset.id), 700);
+    return;
+  }
   if (a === 'slip-settings') { openSettings(); return; }
   if (a === 'settings-apply') { applySettings(); return; }
   if (a === 'settings-close-btn') { closeSettings(); return; }

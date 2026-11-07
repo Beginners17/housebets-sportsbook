@@ -404,8 +404,17 @@ input{font:inherit;color:inherit}
 .cashout-btn{
   width:100%;margin-top:11px;padding:10px;border-radius:var(--radius-s);
   background:var(--gold);color:#0A1C24;font-weight:800;font-size:14px;
+  position:relative;overflow:hidden;
 }
 .cashout-btn:hover{background:#ffdf94}
+.cashout-btn::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(100deg, transparent 0%, rgba(255,166,0,.45) 35%, rgba(255,196,48,.85) 50%, rgba(255,166,0,.45) 65%, transparent 100%);
+  transform:translateX(-110%);
+}
+.cashout-btn.sweeping::after{animation:cashSweep .7s ease-in-out}
+@keyframes cashSweep{to{transform:translateX(110%)}}
+@media (prefers-reduced-motion: reduce){.cashout-btn.sweeping::after{animation:none}}
 
 /* ---------- Mobile bits ---------- */
 .sheet-backdrop{
