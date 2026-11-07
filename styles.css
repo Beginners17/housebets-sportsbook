@@ -325,8 +325,18 @@ input{font:inherit;color:inherit}
   padding:12px 13px;margin-bottom:10px;position:relative;
 }
 .slip-row.changed{border-color:var(--gold)}
-.slip-row.is-suspended{border-color:rgba(255,209,102,.5)}
+.slip-row.is-suspended{
+  border:1.5px dashed rgba(255,209,102,.9);
+  background:
+    repeating-linear-gradient(45deg, rgba(255,209,102,.055) 0 12px, transparent 12px 24px),
+    var(--panel-2);
+}
+.slip-row.is-suspended .slip-pick,
+.slip-row.is-suspended .slip-sub,
+.slip-row.is-suspended .stake-line,
+.slip-row.is-suspended .quick-stakes{opacity:.38}
 .slip-row.is-suspended .slip-odds{color:var(--muted)}
+.slip-row.is-suspended .slip-remove{color:var(--gold);opacity:1}
 .slip-notice{
   display:flex;align-items:center;gap:7px;
   background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.45);
