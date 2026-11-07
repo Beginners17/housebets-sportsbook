@@ -409,12 +409,16 @@ input{font:inherit;color:inherit}
 .cashout-btn:hover{background:#ffdf94}
 .cashout-btn::after{
   content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(100deg, transparent 0%, rgba(255,166,0,.45) 35%, rgba(255,196,48,.85) 50%, rgba(255,166,0,.45) 65%, transparent 100%);
-  transform:translateX(-110%);
+  background:linear-gradient(90deg, #FFB020 0%, #FFC93C 82%, #FFE066 100%);
+  box-shadow:2px 0 14px rgba(255,200,60,.55);
+  transform:translateX(-102%);
+  transition:transform .18s ease;
 }
-.cashout-btn.sweeping::after{animation:cashSweep .7s ease-in-out}
-@keyframes cashSweep{to{transform:translateX(110%)}}
-@media (prefers-reduced-motion: reduce){.cashout-btn.sweeping::after{animation:none}}
+.cashout-btn.holding::after{animation:cashHold .9s linear forwards}
+@keyframes cashHold{from{transform:translateX(-102%)}to{transform:translateX(0)}}
+@media (prefers-reduced-motion: reduce){.cashout-btn.holding::after{animation:none}}
+.cashout-btn{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.cashout-btn .co-label{position:relative;z-index:1}
 
 /* ---------- Mobile bits ---------- */
 .sheet-backdrop{

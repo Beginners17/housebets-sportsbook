@@ -700,7 +700,7 @@ function myBetsHTML() {
         <div class="bet-top"><span class="bet-pick">${esc(b.pick)}</span><span class="status-pill open">Open</span></div>
         <div class="bet-sub">${esc(b.marketName)} · ${esc(b.matchLabel)}</div>
         <div class="bet-nums"><span>Odds<b>${fmtOdds(b.odds)}</b></span><span>Stake<b>${fmt(b.stake)} USDT</b></span><span>Potential return<b>${fmt(b.potential)} USDT</b></span></div>
-        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}">💰 Cash out · ${fmt(cash)} USDT</button>
+        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}" title="Press and hold to confirm"><span class="co-label">💰 Cash out · ${fmt(cash)} USDT</span></button>
       </div>`;
     }).join('');
   }
@@ -945,20 +945,57 @@ document.addEventListener('click', e => {
     return;
   }
   if (a === 'place-bet') { placeBet(); return; }
-  if (a === 'cash-out') {
-    if (el.classList.contains('sweeping')) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { cashOut(el.dataset.id); return; }
-    el.classList.add('sweeping');
-    el.disabled = true;
-    el.textContent = '💰 Cashing out…';
-    setTimeout(() => cashOut(el.dataset.id), 700);
-    return;
-  }
+  if (a === 'cash-out') { return; } /* press-and-hold confirms — see pointer handlers below */
   if (a === 'slip-settings') { openSettings(); return; }
   if (a === 'settings-apply') { applySettings(); return; }
   if (a === 'settings-close-btn') { closeSettings(); return; }
   if (a === 'settings-close') { if (e.target.id === 'settingsBackdrop') closeSettings(); return; }
   if (a === 'avatar') { closeMenu(); toast('🦥 Signed in as a guest sloth · Balance ' + fmt(state.balance) + ' USDT'); return; }
+});
+
+/* ---------------- Cash out: press & hold to confirm ---------------- */
+const HOLD_MS = 900;
+function coLabel(el) { return el.querySelector('.co-label') || el; }
+function startHold(el) {
+  if (el.disabled || el._holdTimer) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { cashOut(el.dataset.id); return; }
+  el._origText = coLabel(el).textContent;
+  el.classList.add('holding');
+  coLabel(el).textContent = '💰 Keep holding…';
+  el._holdTimer = setTimeout(() => {
+    el._holdTimer = null;
+    coLabel(el).textContent = '💰 Cashing out…';
+    cashOut(el.dataset.id);
+  }, HOLD_MS);
+}
+function cancelHold(el) {
+  if (!el._holdTimer) return;
+  clearTimeout(el._holdTimer);
+  el._holdTimer = null;
+  el.classList.remove('holding');
+  if (el._origText) coLabel(el).textContent = el._origText;
+}
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-action="cash-out"]');
+  if (!el) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  startHold(el);
+});
+['pointerup', 'pointerleave', 'pointercancel'].forEach(evt =>
+  document.addEventListener(evt, e => {
+    const el = e.target.closest && e.target.closest('[data-action="cash-out"]');
+    if (el) cancelHold(el);
+  })
+);
+document.addEventListener('keydown', e => {
+  if (e.repeat || (e.key !== 'Enter' && e.key !== ' ')) return;
+  const el = e.target.closest && e.target.closest('[data-action="cash-out"]');
+  if (el) { e.preventDefault(); startHold(el); }
+});
+document.addEventListener('keyup', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest && e.target.closest('[data-action="cash-out"]');
+  if (el) cancelHold(el);
 });
 
 document.addEventListener('input', e => {
