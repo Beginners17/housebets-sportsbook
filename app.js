@@ -1271,12 +1271,31 @@ function repriceAfterGoal(m, homeScored) { /* a goal re-prices the result market
   let p1 = 1 / s1.odds, pX = 1 / sX.odds, p2 = 1 / s2.odds;
   const tot = p1 + pX + p2; p1 /= tot; pX /= tot; p2 /= tot;
   const diff = m.scoreH - m.scoreA;
-  let shift = 0.10 + (m.minute / 90) * 0.32;      /* later goals move prices much more */
-  if (Math.abs(diff) >= 2) shift *= 0.55;          /* already comfortable — a goal changes less */
-  if (homeScored) { p1 += shift; pX -= shift * 0.7; p2 -= shift * 0.3; }
-  else { p2 += shift; pX -= shift * 0.7; p1 -= shift * 0.3; }
-  const cl = v => Math.max(0.004, Math.min(0.97, v));
-  p1 = cl(p1); pX = cl(pX); p2 = cl(p2);
+  const t = m.minute / 90;
+  if (diff === 0) {
+    /* Equaliser: rebuild a level-game price. The draw just got LIKELIER — it must
+       never be drained (the old code pushed it to 244.00 on a 1-1 equaliser). */
+    const sH = p1 / (p1 + p2);                    /* strength split, from the pre-goal price */
+    pX = 0.20 + 0.42 * t * t;                     /* later equaliser → draw far more likely */
+    const rest = 1 - pX;
+    const homeShare = 0.5 + (sH - 0.5) * 0.55;    /* damped — being level cancels most of the gap */
+    p1 = rest * homeShare;
+    p2 = rest * (1 - homeShare);
+  } else {
+    let shift = 0.10 + t * 0.32;                  /* later goals move prices much more */
+    if (Math.abs(diff) >= 2) shift *= 0.55;       /* already comfortable — a goal changes less */
+    const scorerLeads = (homeScored && diff > 0) || (!homeScored && diff < 0);
+    if (scorerLeads) {
+      if (homeScored) { p1 += shift; pX -= shift * 0.7; p2 -= shift * 0.3; }
+      else { p2 += shift; pX -= shift * 0.7; p1 -= shift * 0.3; }
+    } else {
+      /* Scorer still trails: the comeback is on — the leader bleeds to BOTH the draw and the scorer. */
+      if (homeScored) { p1 += shift * 0.35; pX += shift * 0.15; p2 -= shift * 0.50; }
+      else { p2 += shift * 0.35; pX += shift * 0.15; p1 -= shift * 0.50; }
+    }
+  }
+  const cl = (v, lo) => Math.max(lo, Math.min(0.97, v));
+  p1 = cl(p1, 0.004); pX = cl(pX, 0.03); p2 = cl(p2, 0.004); /* draw keeps a sane floor — never 200+ */
   const t2 = p1 + pX + p2; p1 /= t2; pX /= t2; p2 /= t2;
   const set = (s, p) => {
     const nv = Math.max(1.01, Math.min(300, Math.round((0.95 / p) * 100) / 100));
