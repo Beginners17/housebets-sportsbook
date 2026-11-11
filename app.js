@@ -519,6 +519,52 @@ function viewMatch(m) {
   ${blocks}`;
 }
 
+/* ---------------- Account page (mirrors the reference layout) ---------------- */
+function viewAccount() {
+  const open = state.bets.filter(b => b.status === 'open');
+  const staked = open.reduce((s, b) => Math.round((s + b.stake) * 100) / 100, 0);
+  const settled = state.bets.filter(b => b.status === 'settled');
+  const won = settled.filter(b => b.result === 'Won').length;
+  const lost = settled.filter(b => b.result === 'Lost').length;
+  const cashed = settled.filter(b => b.result === 'Cashed out').length;
+  const openLine = open.length
+    ? `${open.length} open bet${open.length === 1 ? '' : 's'} with ${fmt(staked)} USDT staked`
+    : 'No open bets right now.';
+  const resetBtn = state.resetArm
+    ? `<button class="btn danger" data-action="reset-demo">⚠️ Tap again to confirm reset</button>`
+    : `<button class="btn" data-action="reset-demo">Reset to 1,250.00 USDT</button>`;
+  return `<section class="section acct">
+    <div class="acct-card acct-player">
+      <div class="acct-avatar">🦥</div>
+      <div class="acct-id">
+        <h2>Guest Sloth</h2>
+        <div class="acct-sub">Player ID HB-015293 · Member since November 2026</div>
+        <span class="acct-badge">🛡 Demo account</span>
+      </div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">💼 Balance</div>
+      <p class="acct-note">Sample money for the prototype. Deposits and withdrawals are not part of this demo.</p>
+      <div class="acct-balance">${fmt(state.balance)} <span>USDT</span></div>
+      <div class="acct-sub">${openLine}</div>
+      <div class="acct-actions">
+        <button class="btn primary" data-action="rail-tab" data-tab="mybets">🎟 My bets</button>
+        ${resetBtn}
+      </div>
+    </div>
+    <div class="acct-card">
+      <div class="acct-label">🎟 Betting summary</div>
+      <p class="acct-note">Based on the bets on this demo account.</p>
+      <div class="acct-grid">
+        <div class="acct-tile"><span>Bets placed</span><b>${state.bets.length}</b></div>
+        <div class="acct-tile"><span>Won</span><b>${won}</b></div>
+        <div class="acct-tile"><span>Lost</span><b>${lost}</b></div>
+        <div class="acct-tile"><span>Cashed out</span><b>${cashed}</b></div>
+      </div>
+    </div>
+  </section>`;
+}
+
 /* ---------------- Render root ---------------- */
 function renderMain() {
   const main = $('#main');
@@ -527,6 +573,7 @@ function renderMain() {
   else if (state.view === 'live') html = viewLive();
   else if (state.view === 'football') html = viewFootball();
   else if (state.view === 'sport') html = viewSport(state.sport);
+  else if (state.view === 'account') html = viewAccount();
   else if (state.view === 'match') { const m = matchById(state.currentMatchId); html = m ? viewMatch(m) : viewHome(); }
   main.innerHTML = html;
   const ms = $('#marketSearch');
@@ -569,7 +616,7 @@ function renderDrawer() {
     pageItem('nav', 'data-view="live"', '🔴', 'Live', `<span class="sport-count">${liveN}</span>`, state.view === 'live'),
     pageItem('nav', 'data-view="football"', '⚽', 'Football', '', state.view === 'football'),
     pageItem('open-rail', '', '🧾', 'Bet slip and my bets', '', false),
-    pageItem('avatar', '', '👤', 'Account', '', false),
+    pageItem('avatar', '', '👤', 'Account', '', state.view === 'account'),
   ].join('');
   const sports = SPORTS.map(s => {
     const n = MATCHES.filter(m => m.sport === s).length;
@@ -976,6 +1023,7 @@ function closeRail() {
 }
 function go(view, extra) {
   state.view = view;
+  state.resetArm = false;
   Object.assign(state, extra || {});
   closeRail();
   renderMain();
@@ -1064,7 +1112,19 @@ document.addEventListener('click', e => {
   if (a === 'settings-apply') { applySettings(); return; }
   if (a === 'settings-close-btn') { closeSettings(); return; }
   if (a === 'settings-close') { if (e.target.id === 'settingsBackdrop') closeSettings(); return; }
-  if (a === 'avatar') { closeMenu(); toast('🦥 Signed in as a guest sloth · Balance ' + fmt(state.balance) + ' USDT'); return; }
+  if (a === 'avatar') { closeMenu(); go('account'); return; }
+  if (a === 'reset-demo') {
+    if (!state.resetArm) { state.resetArm = true; renderMain(); return; }
+    state.resetArm = false;
+    state.balance = 1250.00;
+    state.bets = [];
+    state.slip.clear();
+    state.coFrac = {};
+    updateBalance(true);
+    renderMain(); renderRail(); updateSlipBar();
+    toast('🔄 Demo reset — balance restored to 1,250.00 USDT');
+    return;
+  }
 });
 
 /* ---------------- Cash out: press & hold to confirm ---------------- */
