@@ -1164,6 +1164,51 @@ function flipValue(valEl, newText, up) { /* 3D flip: old price rotates away, new
   clearTimeout(valEl._flipT);
   valEl._flipT = setTimeout(() => { front.textContent = newText; valEl.classList.remove('flipping'); }, 480);
 }
+function publishOddsChange(m, mk, s) { /* push one selection's new price to its buttons + slip flags */
+  const key = selKey(m.id, mk.id, s.id);
+  $$('[data-odds-key="' + CSS.escape(key) + '"]').forEach(btn => {
+    const val = btn.querySelector('[data-odds-val]');
+    if (reducedMotion()) { /* no flip for reduced motion — keep the colour flash instead */
+      if (val) { const fr = val.querySelector('.ob-front'); if (fr) fr.textContent = fmtOdds(s.odds); else val.textContent = fmtOdds(s.odds); }
+      btn.classList.remove('flash-up', 'flash-down');
+      void btn.offsetWidth;
+      btn.classList.add(s.wasUp ? 'flash-up' : 'flash-down');
+    } else if (val) {
+      flipValue(val, fmtOdds(s.odds), s.wasUp);
+    }
+  });
+  const slipSel = state.slip.get(key);
+  if (slipSel && slipSel.odds !== s.odds) {
+    const pol = state.slipSettings.oddsPolicy;
+    if (pol === 'any' || (pol === 'higher' && s.odds > slipSel.odds)) {
+      slipSel.odds = s.odds; slipSel.changed = false; return 'auto';
+    }
+    slipSel.changed = true;
+  }
+  return null;
+}
+function repriceAfterGoal(m, homeScored) { /* a goal re-prices the result market from score + minute */
+  const mk = findMarket(m.id, 'result');
+  if (!mk) return;
+  const s1 = mk.sels.find(s => s.id === '1'), sX = mk.sels.find(s => s.id === 'X'), s2 = mk.sels.find(s => s.id === '2');
+  if (!s1 || !sX || !s2) return;
+  let p1 = 1 / s1.odds, pX = 1 / sX.odds, p2 = 1 / s2.odds;
+  const tot = p1 + pX + p2; p1 /= tot; pX /= tot; p2 /= tot;
+  const diff = m.scoreH - m.scoreA;
+  let shift = 0.10 + (m.minute / 90) * 0.32;      /* later goals move prices much more */
+  if (Math.abs(diff) >= 2) shift *= 0.55;          /* already comfortable — a goal changes less */
+  if (homeScored) { p1 += shift; pX -= shift * 0.7; p2 -= shift * 0.3; }
+  else { p2 += shift; pX -= shift * 0.7; p1 -= shift * 0.3; }
+  const cl = v => Math.max(0.004, Math.min(0.97, v));
+  p1 = cl(p1); pX = cl(pX); p2 = cl(p2);
+  const t2 = p1 + pX + p2; p1 /= t2; pX /= t2; p2 /= t2;
+  const set = (s, p) => {
+    const nv = Math.max(1.01, Math.min(300, Math.round((0.95 / p) * 100) / 100));
+    s.wasUp = nv > s.odds; s.odds = nv;
+    publishOddsChange(m, mk, s);
+  };
+  set(s1, p1); set(sX, pX); set(s2, p2);
+}
 function driftOddsOnce() {
   const all = [];
   MATCHES.forEach(m => getMarkets(m).forEach(mk => {
@@ -1182,26 +1227,8 @@ function driftOddsOnce() {
   });
   /* update every visible button for the drifted selections + slip flags */
   picks.forEach(({ m, mk, s }) => {
-    const key = selKey(m.id, mk.id, s.id);
-    changedKeys.add(key);
-    $$('[data-odds-key="' + CSS.escape(key) + '"]').forEach(btn => {
-      const val = btn.querySelector('[data-odds-val]');
-      if (reducedMotion()) { /* no flip for reduced motion — keep the colour flash instead */
-        if (val) { const fr = val.querySelector('.ob-front'); if (fr) fr.textContent = fmtOdds(s.odds); else val.textContent = fmtOdds(s.odds); }
-        btn.classList.remove('flash-up', 'flash-down');
-        void btn.offsetWidth;
-        btn.classList.add(s.wasUp ? 'flash-up' : 'flash-down');
-      } else if (val) {
-        flipValue(val, fmtOdds(s.odds), s.wasUp);
-      }
-    });
-    const slipSel = state.slip.get(key);
-    if (slipSel && slipSel.odds !== s.odds) {
-      const pol = state.slipSettings.oddsPolicy;
-      if (pol === 'any' || (pol === 'higher' && s.odds > slipSel.odds)) {
-        slipSel.odds = s.odds; slipSel.changed = false; slipAutoAccepted = true;
-      } else { slipSel.changed = true; }
-    }
+    changedKeys.add(selKey(m.id, mk.id, s.id));
+    if (publishOddsChange(m, mk, s) === 'auto') slipAutoAccepted = true;
   });
   if (slipAutoAccepted) syncSlipAfterSim(true);
   else if (Array.from(state.slip.values()).some(s => s.changed)) syncSlipAfterSim();
@@ -1214,7 +1241,9 @@ function maybeGoal() {
   const homeScored = Math.random() < 0.5;
   if (homeScored) m.scoreH++; else m.scoreA++;
   m.momentum = Math.max(15, Math.min(85, momentumOf(m) + (homeScored ? 14 : -14)));
+  repriceAfterGoal(m, homeScored); /* the score moved — the price must move with it */
   renderMain(); /* refreshes scoreboards and rows with the new score */
+  syncSlipAfterSim(true);
   toast('⚽ Goal! ' + m.home + ' ' + m.scoreH + ' – ' + m.scoreA + ' ' + m.away);
 }
 function maybeToggleSuspended() {
