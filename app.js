@@ -764,26 +764,32 @@ function myBetsHTML() {
   if (state.myBetsTab === 'open') {
     if (!open.length) return tabs + `<div class="slip-empty"><span class="sloth">🦥</span>No open bets.<br>Place one from the slip and it will chill here.</div>`;
     return tabs + open.map(b => {
-      const cash = b.potential * b.cashFactor;
+      const cash = betLiveValue(b);
+      const liveSel = betSelNow(b);
+      const susp = betSuspended(b);
       const f = state.coFrac[b.id] || 100;
       const partAmt = Math.round(cash * f) / 100;
       const keepAmt = Math.round(b.potential * (100 - f)) / 100;
       const btnLabel = f >= 100 ? `💰 Cash out · ${fmt(cash)} USDT` : `💰 Cash out ${f}% · ${fmt(partAmt)} USDT`;
       const info = f >= 100
-        ? `Full cash out — nothing stays riding.`
+        ? `Full cash out at the live price — nothing stays riding.`
         : `Cashes <b>${fmt(partAmt)} USDT</b> now · <b>${fmt(keepAmt)} USDT</b> of potential stays riding.`;
-      return `<div class="bet-card">
-        <div class="bet-top"><span class="bet-pick">${esc(b.pick)}</span><span class="status-pill open">Open</span></div>
-        <div class="bet-sub">${esc(b.marketName)} · ${esc(b.matchLabel)}</div>
-        <div class="bet-nums"><span>Odds<b>${fmtOdds(b.odds)}</b></span><span>Stake<b>${fmt(b.stake)} USDT</b></span><span>Potential return<b>${fmt(b.potential)} USDT</b></span></div>
-        ${b.partCashed ? `<div class="bet-sub">💰 Already cashed out: <b>${fmt(b.partCashed)} USDT</b></div>` : ''}
-        <div class="co-zone">
+      const coZone = susp
+        ? `<div class="co-zone"><div class="co-info">⏸ <b>Market suspended</b> — cash out is paused until the market reopens. Your bet keeps riding meanwhile.</div></div>
+        <button class="cashout-btn" data-id="${b.id}" disabled title="Market suspended"><span class="co-label">⏸ Cash out unavailable</span></button>`
+        : `<div class="co-zone">
           <div class="co-head"><span>Cash out amount</span><span class="co-pct" data-co-pct="${b.id}">${f >= 100 ? 'All' : f + '%'}</span></div>
           <input type="range" class="co-range" min="25" max="100" step="25" value="${f}" data-co-for="${b.id}" aria-label="Cash out percentage">
           <div class="co-scale"><span>25%</span><span>50%</span><span>75%</span><span>All</span></div>
           <div class="co-info" data-co-info="${b.id}">${info}</div>
         </div>
-        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}" title="Press and hold to confirm"><span class="co-label">${btnLabel}</span></button>
+        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}" title="Press and hold to confirm"><span class="co-label">${btnLabel}</span></button>`;
+      return `<div class="bet-card">
+        <div class="bet-top"><span class="bet-pick">${esc(b.pick)}</span><span class="status-pill open">Open</span></div>
+        <div class="bet-sub">${esc(b.marketName)} · ${esc(b.matchLabel)}</div>
+        <div class="bet-nums"><span>Odds<b>${fmtOdds(b.odds)}</b></span>${liveSel ? `<span>Live odds<b>${fmtOdds(liveSel.odds)}</b></span>` : ''}<span>Stake<b>${fmt(b.stake)} USDT</b></span><span>Potential return<b>${fmt(b.potential)} USDT</b></span></div>
+        ${b.partCashed ? `<div class="bet-sub">💰 Already cashed out: <b>${fmt(b.partCashed)} USDT</b></div>` : ''}
+        ${coZone}
       </div>`;
     }).join('');
   }
@@ -863,8 +869,9 @@ function placeBet() {
   placed.forEach(sel => {
     state.bets.unshift({
       id: 'bet-' + (state.betSeq++), pick: sel.label, matchLabel: sel.matchLabel, marketName: sel.marketName,
+      matchId: sel.matchId, marketId: sel.marketId, selId: sel.selId,
       odds: sel.odds, stake: parseFloat(sel.stake) || 0, potential: (parseFloat(sel.stake) || 0) * sel.odds,
-      status: 'open', result: null, returned: 0, cashFactor: 0.82,
+      status: 'open', result: null, returned: 0,
     });
   });
   state.slip.clear();
@@ -875,11 +882,21 @@ function placeBet() {
   updateSlipBar();
   toast('Bet placed 🎉 Good luck, sloth-style.');
 }
+const CASHOUT_MARGIN = 0.95; /* the house keeps 5% for an early exit */
+function betMarket(b) { return b.matchId ? findMarket(b.matchId, b.marketId) : null; }
+function betSelNow(b) { const mk = betMarket(b); if (!mk) return null; return mk.sels.find(s => s.id === b.selId) || null; }
+function betSuspended(b) { const mk = betMarket(b); return !!mk && mk.suspended; }
+function betLiveValue(b) { /* value tracks the LIVE price: stake x (odds taken / odds now), less margin */
+  const s = betSelNow(b);
+  if (!s) return Math.round(b.potential * CASHOUT_MARGIN * 100) / 100;
+  return Math.round(b.stake * (b.odds / s.odds) * CASHOUT_MARGIN * 100) / 100;
+}
 function cashOut(id) {
   const b = state.bets.find(x => x.id === id);
   if (!b || b.status !== 'open') return;
+  if (betSuspended(b)) { toast('⏸ Market suspended — cash out is paused until it reopens.'); return; }
   const f = state.coFrac[id] || 100;
-  const amount = Math.round(b.potential * b.cashFactor * f) / 100;
+  const amount = Math.round(betLiveValue(b) * f) / 100;
   if (f < 100) {
     const keep = (100 - f) / 100;
     const newPotential = Math.round(b.potential * keep * 100) / 100;
@@ -1103,7 +1120,7 @@ document.addEventListener('input', e => {
     if (!b || b.status !== 'open') return;
     const f = parseInt(e.target.value, 10) || 100;
     state.coFrac[id] = f;
-    const cash = b.potential * b.cashFactor;
+    const cash = betLiveValue(b);
     const partAmt = Math.round(cash * f) / 100;
     const keepAmt = Math.round(b.potential * (100 - f)) / 100;
     const card = e.target.closest('.bet-card');
@@ -1307,9 +1324,6 @@ function tick() {
   driftOddsOnce();
   maybeGoal();
   maybeToggleSuspended();
-  state.bets.forEach(b => {
-    if (b.status === 'open') b.cashFactor = Math.min(0.95, Math.max(0.60, b.cashFactor + (Math.random() - 0.5) * 0.04));
-  });
   if (state.railTab === 'mybets' && state.bets.some(b => b.status === 'open')) {
     const ae = document.activeElement;
     const busy = (ae && ae.classList && (ae.classList.contains('co-range') || ae.classList.contains('stake-range'))) ||

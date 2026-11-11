@@ -445,6 +445,9 @@ input{font:inherit;color:inherit}
 @media (prefers-reduced-motion: reduce){.cashout-btn.holding::after{animation:none}}
 .cashout-btn{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .cashout-btn .co-label{position:relative;z-index:1}
+.cashout-btn:disabled{opacity:.55;cursor:not-allowed;background:#3a4356;color:#aebdd2}
+.cashout-btn:disabled:hover{background:#3a4356}
+.cashout-btn:disabled::after{display:none}
 
 /* ---------- Partial cash out (My Bets differentiator) ---------- */
 .co-zone{margin-top:11px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 11px 9px}
