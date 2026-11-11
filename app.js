@@ -170,6 +170,7 @@ const state = {
   railTab: 'slip',
   myBetsTab: 'open',
   slipBanner: null,        /* { type, html } */
+  coFrac: {},              /* betId -> partial cash-out percent (25/50/75/100) */
   slipSettings: { order: 'added', oddsPolicy: 'manual' }, /* added|newest|kickoff · manual|higher|any */
   bets: [
     { id: 'seed-won', pick: 'Manchester City', matchLabel: 'Manchester City v Chelsea', marketName: 'Match result',
@@ -193,6 +194,25 @@ function initials(name) {
 function hue(name) { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
 function crest(name) { return `<span class="crest" style="--h:${hue(name)}">${esc(initials(name))}</span>`; }
 let toastTimer = null;
+function reducedMotion() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+function animateNum(el, to, format) { /* count-up/down tween for money readouts (~300 ms) */
+  if (!el) return;
+  const from = typeof el._animVal === 'number' ? el._animVal : to;
+  el._animVal = to;
+  if (reducedMotion() || from === to) { el.textContent = format(to); return; }
+  const token = (el._animToken = (el._animToken || 0) + 1);
+  const start = performance.now(), dur = 300;
+  const stepFn = now => {
+    if (el._animToken !== token) return;
+    const p = Math.min(1, (now - start) / dur);
+    const v = from + (to - from) * (1 - Math.pow(1 - p, 2));
+    el.textContent = format(v);
+    if (p < 1) requestAnimationFrame(stepFn); else el.textContent = format(to);
+  };
+  requestAnimationFrame(stepFn);
+}
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg;
@@ -213,6 +233,34 @@ function scoreLabel(m) {
   if (m.scoreText) return m.scoreText;
   return m.scoreH + ' – ' + m.scoreA;
 }
+/* ---------------- Momentum (match page differentiator) ---------------- */
+function momentumBase(m) { return 50 + Math.max(-20, Math.min(20, (m.scoreH - m.scoreA) * 8)); }
+function momentumOf(m) {
+  if (typeof m.momentum !== 'number') m.momentum = m.status === 'live' ? momentumBase(m) : 50;
+  return m.momentum;
+}
+function momentumLabel(m) {
+  const v = momentumOf(m);
+  if (v >= 56) return m.home + ' menekan';
+  if (v <= 44) return m.away + ' menekan';
+  return 'Seimbang — end to end';
+}
+function momentumHTML(m) {
+  if (m.sport !== 'Football') return '';
+  if (m.status !== 'live') {
+    return `<div class="momentum">
+      <div class="mo-head"><span>📊 Momentum</span><span class="mo-label">Kick-off belum mulai — netral</span></div>
+      <div class="mo-bar"><div class="mo-home" style="width:50%"></div><div class="mo-mid"></div></div>
+      <div class="mo-teams"><span>${esc(m.home)} <b>50%</b></span><span><b>50%</b> ${esc(m.away)}</span></div>
+    </div>`;
+  }
+  const v = Math.round(momentumOf(m));
+  return `<div class="momentum">
+    <div class="mo-head"><span>📊 Momentum</span><span class="mo-label" data-mo-label="${m.id}">${esc(momentumLabel(m))}</span></div>
+    <div class="mo-bar"><div class="mo-home" data-mo-home="${m.id}" style="width:${v}%"></div><div class="mo-mid"></div></div>
+    <div class="mo-teams"><span>${esc(m.home)} <b data-mo-hpct="${m.id}">${v}%</b></span><span><b data-mo-apct="${m.id}">${100 - v}%</b> ${esc(m.away)}</span></div>
+  </div>`;
+}
 function liveInfo(m) { /* "1 – 0 · 52'" for slip rows */
   if (m.status !== 'live') return 'Starts ' + m.startTime + ' · ' + (m.startDate || '');
   return scoreLabel(m) + ' · ' + clockLabel(m);
@@ -225,7 +273,7 @@ function oddsBtn(m, mk, s) {
   const dis = mk.suspended ? ' disabled' : '';
   return `<button class="odds-btn${selected}" data-action="toggle-odds" data-key="${key}" data-odds-key="${key}"${dis}
       aria-pressed="${state.slip.has(key)}">
-    <span class="ob-label">${esc(s.label)}</span><span class="ob-value" data-odds-val="${key}">${fmtOdds(s.odds)}</span>
+    <span class="ob-label">${esc(s.label)}</span><span class="ob-value" data-odds-val="${key}"><span class="ob-face ob-front">${fmtOdds(s.odds)}</span><span class="ob-face ob-back" aria-hidden="true"></span></span>
   </button>`;
 }
 function rowOdds(m) {
@@ -464,6 +512,7 @@ function viewMatch(m) {
     </div>
     <div class="sb-meta">${meta}</div>
   </div>
+  ${momentumHTML(m)}
   <div class="market-search"><span class="search-ico">🔍</span>
     <input id="marketSearch" type="search" placeholder="Search markets or players" value="${esc(state.marketQuery)}" autocomplete="off"></div>
   <div class="chips">${tabs}</div>
@@ -590,6 +639,24 @@ function slipBlockers() {
   state.slip.forEach(sel => { if (sel.changed) changed = true; if (selSuspended(sel)) suspended = true; });
   return { changed, suspended };
 }
+function syncStakeUI(key) { /* refresh returns + totals after a stake change, without re-rendering the slip */
+  const sel = state.slip.get(key);
+  if (!sel) return;
+  const r = (parseFloat(sel.stake) || 0) * sel.odds;
+  animateNum(document.querySelector(`[data-ret-for="${CSS.escape(key)}"]`), r, v => v >= 0.005 ? fmt(v) : '—');
+  const t = slipTotals();
+  const ts = $('#totStake'), co = $('#combOdds');
+  if (ts) ts.textContent = fmt(t.stake) + ' USDT';
+  if (co) co.textContent = fmtOdds(t.comb || 1);
+  animateNum($('#totReturn'), t.ret, v => fmt(v) + ' USDT');
+  const pb = $('#placeBtn');
+  if (pb) {
+    const blk = slipBlockers();
+    pb.disabled = t.stake <= 0 || blk.changed || blk.suspended;
+    pb.textContent = (blk.changed && !blk.suspended) ? '⚠️ Review odds changes' : 'Place bet';
+  }
+  updateSlipBar();
+}
 function renderRail() {
   const body = $('#railBody');
   $('#tabSlip').classList.toggle('active', state.railTab === 'slip');
@@ -657,6 +724,8 @@ function slipHTML() {
             value="${sel.stake ? sel.stake : ''}" data-stake-for="${sel.key}" ${susp ? 'disabled' : ''}></div>
         <div class="stake-ret"><span class="lbl">Returns</span><span class="val" data-ret-for="${sel.key}">${ret ? fmt(ret) : '—'}</span></div>
       </div>
+      <input type="range" class="stake-range" min="0" max="${Math.max(1, Math.floor(state.balance))}" step="1"
+        value="${Math.min(parseFloat(sel.stake) || 0, state.balance)}" data-stake-range-for="${sel.key}" ${susp ? 'disabled' : ''} aria-label="Stake slider">
       <div class="quick-stakes">
         <button data-action="quick-stake" data-key="${sel.key}" data-amt="10">+10</button>
         <button data-action="quick-stake" data-key="${sel.key}" data-amt="25">+25</button>
@@ -696,11 +765,25 @@ function myBetsHTML() {
     if (!open.length) return tabs + `<div class="slip-empty"><span class="sloth">🦥</span>No open bets.<br>Place one from the slip and it will chill here.</div>`;
     return tabs + open.map(b => {
       const cash = b.potential * b.cashFactor;
+      const f = state.coFrac[b.id] || 100;
+      const partAmt = Math.round(cash * f) / 100;
+      const keepAmt = Math.round(b.potential * (100 - f)) / 100;
+      const btnLabel = f >= 100 ? `💰 Cash out · ${fmt(cash)} USDT` : `💰 Cash out ${f}% · ${fmt(partAmt)} USDT`;
+      const info = f >= 100
+        ? `Full cash out — nothing stays riding.`
+        : `Cashes <b>${fmt(partAmt)} USDT</b> now · <b>${fmt(keepAmt)} USDT</b> of potential stays riding.`;
       return `<div class="bet-card">
         <div class="bet-top"><span class="bet-pick">${esc(b.pick)}</span><span class="status-pill open">Open</span></div>
         <div class="bet-sub">${esc(b.marketName)} · ${esc(b.matchLabel)}</div>
         <div class="bet-nums"><span>Odds<b>${fmtOdds(b.odds)}</b></span><span>Stake<b>${fmt(b.stake)} USDT</b></span><span>Potential return<b>${fmt(b.potential)} USDT</b></span></div>
-        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}" title="Press and hold to confirm"><span class="co-label">💰 Cash out · ${fmt(cash)} USDT</span></button>
+        ${b.partCashed ? `<div class="bet-sub">💰 Already cashed out: <b>${fmt(b.partCashed)} USDT</b></div>` : ''}
+        <div class="co-zone">
+          <div class="co-head"><span>Cash out amount</span><span class="co-pct" data-co-pct="${b.id}">${f >= 100 ? 'All' : f + '%'}</span></div>
+          <input type="range" class="co-range" min="25" max="100" step="25" value="${f}" data-co-for="${b.id}" aria-label="Cash out percentage">
+          <div class="co-scale"><span>25%</span><span>50%</span><span>75%</span><span>All</span></div>
+          <div class="co-info" data-co-info="${b.id}">${info}</div>
+        </div>
+        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}" title="Press and hold to confirm"><span class="co-label">${btnLabel}</span></button>
       </div>`;
     }).join('');
   }
@@ -795,8 +878,23 @@ function placeBet() {
 function cashOut(id) {
   const b = state.bets.find(x => x.id === id);
   if (!b || b.status !== 'open') return;
-  const amount = Math.round(b.potential * b.cashFactor * 100) / 100;
-  b.status = 'settled'; b.result = 'Cashed out'; b.returned = amount;
+  const f = state.coFrac[id] || 100;
+  const amount = Math.round(b.potential * b.cashFactor * f) / 100;
+  if (f < 100) {
+    const keep = (100 - f) / 100;
+    const newPotential = Math.round(b.potential * keep * 100) / 100;
+    if (newPotential >= 0.01) {
+      b.partCashed = Math.round(((b.partCashed || 0) + amount) * 100) / 100;
+      b.stake = Math.round(b.stake * keep * 100) / 100;
+      b.potential = newPotential;
+      state.balance = Math.round((state.balance + amount) * 100) / 100;
+      updateBalance(true);
+      renderRail();
+      toast('Cashed out ' + f + '% · ' + fmt(amount) + ' USDT — the rest rides on 💰');
+      return;
+    }
+  }
+  b.status = 'settled'; b.result = 'Cashed out'; b.returned = Math.round(((b.partCashed || 0) + amount) * 100) / 100;
   state.balance = Math.round((state.balance + amount) * 100) / 100;
   updateBalance(true);
   renderRail();
@@ -999,10 +1097,44 @@ document.addEventListener('keyup', e => {
 });
 
 document.addEventListener('input', e => {
+  if (e.target.classList && e.target.classList.contains('co-range')) {
+    const id = e.target.dataset.coFor;
+    const b = state.bets.find(x => x.id === id);
+    if (!b || b.status !== 'open') return;
+    const f = parseInt(e.target.value, 10) || 100;
+    state.coFrac[id] = f;
+    const cash = b.potential * b.cashFactor;
+    const partAmt = Math.round(cash * f) / 100;
+    const keepAmt = Math.round(b.potential * (100 - f)) / 100;
+    const card = e.target.closest('.bet-card');
+    const pctEl = card ? card.querySelector(`[data-co-pct="${CSS.escape(id)}"]`) : null;
+    if (pctEl) pctEl.textContent = f >= 100 ? 'All' : f + '%';
+    const infoEl = card ? card.querySelector(`[data-co-info="${CSS.escape(id)}"]`) : null;
+    if (infoEl) infoEl.innerHTML = f >= 100
+      ? `Full cash out — nothing stays riding.`
+      : `Cashes <b>${fmt(partAmt)} USDT</b> now · <b>${fmt(keepAmt)} USDT</b> of potential stays riding.`;
+    const btn = card ? card.querySelector('[data-action="cash-out"]') : null;
+    if (btn) {
+      const lbl = f >= 100 ? `💰 Cash out · ${fmt(cash)} USDT` : `💰 Cash out ${f}% · ${fmt(partAmt)} USDT`;
+      coLabel(btn).textContent = lbl;
+      btn._origText = lbl;
+    }
+    return;
+  }
   if (e.target.id === 'globalSearch') {
     state.query = e.target.value;
     if (state.view !== 'home') { state.view = 'home'; }
     renderMain();
+    return;
+  }
+  if (e.target.classList && e.target.classList.contains('stake-range')) {
+    const key = e.target.dataset.stakeRangeFor;
+    const sel = state.slip.get(key);
+    if (!sel) return;
+    sel.stake = e.target.value;
+    const num = document.querySelector(`[data-stake-for="${CSS.escape(key)}"]`);
+    if (num) num.value = e.target.value;
+    syncStakeUI(key);
     return;
   }
   if (e.target.classList && e.target.classList.contains('stake-input')) {
@@ -1010,24 +1142,28 @@ document.addEventListener('input', e => {
     const sel = state.slip.get(key);
     if (!sel) return;
     sel.stake = e.target.value;
-    const retEl = document.querySelector(`[data-ret-for="${CSS.escape(key)}"]`);
-    const r = (parseFloat(sel.stake) || 0) * sel.odds;
-    if (retEl) retEl.textContent = r ? fmt(r) : '—';
-    const t = slipTotals();
-    const ts = $('#totStake'), tr = $('#totReturn'), co = $('#combOdds');
-    if (ts) ts.textContent = fmt(t.stake) + ' USDT';
-    if (tr) tr.textContent = fmt(t.ret) + ' USDT';
-    if (co) co.textContent = fmtOdds(t.comb || 1);
-    const pb = $('#placeBtn');
-    if (pb) {
-      const blk = slipBlockers();
-      pb.disabled = t.stake <= 0 || blk.changed || blk.suspended;
-      pb.textContent = (blk.changed && !blk.suspended) ? '⚠️ Review odds changes' : 'Place bet';
-    }
+    const range = document.querySelector(`[data-stake-range-for="${CSS.escape(key)}"]`);
+    if (range) range.value = Math.min(parseFloat(sel.stake) || 0, parseFloat(range.max) || 0);
+    syncStakeUI(key);
   }
 });
 
 /* ---------------- Live simulation ---------------- */
+function flipValue(valEl, newText, up) { /* 3D flip: old price rotates away, new price rotates in */
+  const front = valEl.querySelector('.ob-front');
+  const back = valEl.querySelector('.ob-back');
+  if (!front || !back) { valEl.textContent = newText; return; }
+  if (front.textContent === newText) return;
+  if (reducedMotion()) { front.textContent = newText; return; }
+  back.textContent = newText;
+  back.classList.toggle('up', !!up);
+  back.classList.toggle('down', !up);
+  valEl.classList.remove('flipping');
+  void valEl.offsetWidth;
+  valEl.classList.add('flipping');
+  clearTimeout(valEl._flipT);
+  valEl._flipT = setTimeout(() => { front.textContent = newText; valEl.classList.remove('flipping'); }, 480);
+}
 function driftOddsOnce() {
   const all = [];
   MATCHES.forEach(m => getMarkets(m).forEach(mk => {
@@ -1050,10 +1186,14 @@ function driftOddsOnce() {
     changedKeys.add(key);
     $$('[data-odds-key="' + CSS.escape(key) + '"]').forEach(btn => {
       const val = btn.querySelector('[data-odds-val]');
-      if (val) val.textContent = fmtOdds(s.odds);
-      btn.classList.remove('flash-up', 'flash-down');
-      void btn.offsetWidth;
-      btn.classList.add(s.wasUp ? 'flash-up' : 'flash-down');
+      if (reducedMotion()) { /* no flip for reduced motion — keep the colour flash instead */
+        if (val) { const fr = val.querySelector('.ob-front'); if (fr) fr.textContent = fmtOdds(s.odds); else val.textContent = fmtOdds(s.odds); }
+        btn.classList.remove('flash-up', 'flash-down');
+        void btn.offsetWidth;
+        btn.classList.add(s.wasUp ? 'flash-up' : 'flash-down');
+      } else if (val) {
+        flipValue(val, fmtOdds(s.odds), s.wasUp);
+      }
     });
     const slipSel = state.slip.get(key);
     if (slipSel && slipSel.odds !== s.odds) {
@@ -1073,6 +1213,7 @@ function maybeGoal() {
   const m = liveFootball[Math.floor(Math.random() * liveFootball.length)];
   const homeScored = Math.random() < 0.5;
   if (homeScored) m.scoreH++; else m.scoreA++;
+  m.momentum = Math.max(15, Math.min(85, momentumOf(m) + (homeScored ? 14 : -14)));
   renderMain(); /* refreshes scoreboards and rows with the new score */
   toast('⚽ Goal! ' + m.home + ' ' + m.scoreH + ' – ' + m.scoreA + ' ' + m.away);
 }
@@ -1120,13 +1261,32 @@ function tick() {
     const m = matchById(el.dataset.clockFor);
     if (m) el.textContent = clockLabel(m);
   });
+  MATCHES.forEach(m => { /* momentum drift: random walk pulled toward the score-based baseline */
+    if (m.status !== 'live' || m.sport !== 'Football') return;
+    const base = momentumBase(m);
+    m.momentum = Math.max(15, Math.min(85, momentumOf(m) + (Math.random() - 0.5) * 3 + (base - momentumOf(m)) * 0.05));
+    const v = Math.round(m.momentum);
+    const fill = document.querySelector(`[data-mo-home="${m.id}"]`);
+    if (fill) fill.style.width = v + '%';
+    const lbl = document.querySelector(`[data-mo-label="${m.id}"]`);
+    if (lbl) lbl.textContent = momentumLabel(m);
+    const hp = document.querySelector(`[data-mo-hpct="${m.id}"]`);
+    if (hp) hp.textContent = v + '%';
+    const ap = document.querySelector(`[data-mo-apct="${m.id}"]`);
+    if (ap) ap.textContent = (100 - v) + '%';
+  });
   driftOddsOnce();
   maybeGoal();
   maybeToggleSuspended();
   state.bets.forEach(b => {
     if (b.status === 'open') b.cashFactor = Math.min(0.95, Math.max(0.60, b.cashFactor + (Math.random() - 0.5) * 0.04));
   });
-  if (state.railTab === 'mybets' && state.bets.some(b => b.status === 'open')) renderRail();
+  if (state.railTab === 'mybets' && state.bets.some(b => b.status === 'open')) {
+    const ae = document.activeElement;
+    const busy = (ae && ae.classList && (ae.classList.contains('co-range') || ae.classList.contains('stake-range'))) ||
+      !!document.querySelector('.cashout-btn.holding');
+    if (!busy) renderRail();
+  }
   updateTicker();
   updateSlipBar();
 }
