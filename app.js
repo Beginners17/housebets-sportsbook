@@ -782,7 +782,7 @@ function myBetsHTML() {
           <div class="co-scale"><span>25%</span><span>50%</span><span>75%</span><span>All</span></div>
           <div class="co-info" data-co-info="${b.id}">${info}</div>
         </div>
-        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}" title="Press and hold to confirm"><span class="co-label">${btnLabel}</span></button>`;
+        <button class="cashout-btn" data-action="cash-out" data-id="${b.id}" title="Press and hold to confirm"><span class="co-label">${btnLabel}</span><span class="co-top" aria-hidden="true">${btnLabel}</span></button>`;
       return `<div class="bet-card">
         <div class="bet-top"><span class="bet-pick">${esc(b.pick)}</span><span class="status-pill open">Open</span></div>
         <div class="bet-sub">${esc(b.marketName)} · ${esc(b.matchLabel)}</div>
@@ -1070,15 +1070,17 @@ document.addEventListener('click', e => {
 /* ---------------- Cash out: press & hold to confirm ---------------- */
 const HOLD_MS = 900;
 function coLabel(el) { return el.querySelector('.co-label') || el; }
+function setCoLabel(el, txt) { /* keep the sweep overlay label in sync with the base label */
+  const spans = el.querySelectorAll('.co-label, .co-top');
+  if (spans.length) spans.forEach(s => { s.textContent = txt; });
+  else el.textContent = txt;
+}
 function startHold(el) {
   if (el.disabled || el._holdTimer) return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { cashOut(el.dataset.id); return; }
-  el._origText = coLabel(el).textContent;
-  el.classList.add('holding');
-  coLabel(el).textContent = '💰 Keep holding…';
+  el.classList.add('holding'); /* the mint sweep runs left-to-right over the label (CSS) */
   el._holdTimer = setTimeout(() => {
     el._holdTimer = null;
-    coLabel(el).textContent = '💰 Cashing out…';
     cashOut(el.dataset.id);
   }, HOLD_MS);
 }
@@ -1087,7 +1089,6 @@ function cancelHold(el) {
   clearTimeout(el._holdTimer);
   el._holdTimer = null;
   el.classList.remove('holding');
-  if (el._origText) coLabel(el).textContent = el._origText;
 }
 document.addEventListener('pointerdown', e => {
   const el = e.target.closest('[data-action="cash-out"]');
@@ -1132,8 +1133,7 @@ document.addEventListener('input', e => {
     const btn = card ? card.querySelector('[data-action="cash-out"]') : null;
     if (btn) {
       const lbl = f >= 100 ? `Hold to cash out · ${fmt(cash)} USDT` : `Hold to cash out ${f}% · ${fmt(partAmt)} USDT`;
-      coLabel(btn).textContent = lbl;
-      btn._origText = lbl;
+      setCoLabel(btn, lbl);
     }
     return;
   }

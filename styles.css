@@ -429,25 +429,22 @@ input{font:inherit;color:inherit}
 .bet-nums b{color:var(--text);display:block;font-size:13.5px}
 .cashout-btn{
   width:100%;margin-top:11px;padding:10px;border-radius:var(--radius-s);
-  background:var(--gold);color:#0A1C24;font-weight:800;font-size:14px;
+  background:rgba(169,239,211,.07);color:var(--mint);font-weight:800;font-size:14px;
+  border:1px solid rgba(169,239,211,.45);
   position:relative;overflow:hidden;
 }
-.cashout-btn:hover{background:#ffdf94}
-.cashout-btn::after{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(90deg, #FFB020 0%, #FFC93C 82%, #FFE066 100%);
-  box-shadow:2px 0 14px rgba(255,200,60,.55);
-  transform:translateX(-102%);
-  transition:transform .18s ease;
-}
-.cashout-btn.holding::after{animation:cashHold .9s linear forwards}
-@keyframes cashHold{from{transform:translateX(-102%)}to{transform:translateX(0)}}
-@media (prefers-reduced-motion: reduce){.cashout-btn.holding::after{animation:none}}
-.cashout-btn{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.cashout-btn:hover{background:rgba(169,239,211,.14)}
 .cashout-btn .co-label{position:relative;z-index:1}
-.cashout-btn:disabled{opacity:.55;cursor:not-allowed;background:#3a4356;color:#aebdd2}
+.cashout-btn .co-top{
+  position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;
+  background:var(--mint);color:#0A1C24;pointer-events:none;white-space:nowrap;
+  clip-path:inset(0 100% 0 0);transition:clip-path .18s ease;
+}
+.cashout-btn.holding .co-top{clip-path:inset(0 0% 0 0);transition:clip-path .9s linear}
+@media (prefers-reduced-motion: reduce){.cashout-btn.holding .co-top{transition:none}}
+.cashout-btn{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.cashout-btn:disabled{opacity:.55;cursor:not-allowed;background:#3a4356;color:#aebdd2;border-color:#3a4356}
 .cashout-btn:disabled:hover{background:#3a4356}
-.cashout-btn:disabled::after{display:none}
 
 /* ---------- Partial cash out (My Bets differentiator) ---------- */
 .co-zone{margin-top:11px;background:var(--panel-3);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 11px 9px}
