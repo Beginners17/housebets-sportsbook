@@ -770,13 +770,12 @@ function myBetsHTML() {
       const f = state.coFrac[b.id] || 100;
       const partAmt = Math.round(cash * f) / 100;
       const keepAmt = Math.round(b.potential * (100 - f)) / 100;
-      const btnLabel = f >= 100 ? `💰 Cash out · ${fmt(cash)} USDT` : `💰 Cash out ${f}% · ${fmt(partAmt)} USDT`;
+      const btnLabel = f >= 100 ? `Hold to cash out · ${fmt(cash)} USDT` : `Hold to cash out ${f}% · ${fmt(partAmt)} USDT`;
       const info = f >= 100
         ? `Full cash out at the live price — nothing stays riding.`
         : `Cashes <b>${fmt(partAmt)} USDT</b> now · <b>${fmt(keepAmt)} USDT</b> of potential stays riding.`;
       const coZone = susp
-        ? `<div class="co-zone"><div class="co-info">⏸ <b>Market suspended</b> — cash out is paused until the market reopens. Your bet keeps riding meanwhile.</div></div>
-        <button class="cashout-btn" data-id="${b.id}" disabled title="Market suspended"><span class="co-label">⏸ Cash out unavailable</span></button>`
+        ? `<button class="cashout-btn" data-id="${b.id}" disabled title="Market suspended"><span class="co-label">Cash out suspended</span></button>`
         : `<div class="co-zone">
           <div class="co-head"><span>Cash out amount</span><span class="co-pct" data-co-pct="${b.id}">${f >= 100 ? 'All' : f + '%'}</span></div>
           <input type="range" class="co-range" min="25" max="100" step="25" value="${f}" data-co-for="${b.id}" aria-label="Cash out percentage">
@@ -1128,11 +1127,11 @@ document.addEventListener('input', e => {
     if (pctEl) pctEl.textContent = f >= 100 ? 'All' : f + '%';
     const infoEl = card ? card.querySelector(`[data-co-info="${CSS.escape(id)}"]`) : null;
     if (infoEl) infoEl.innerHTML = f >= 100
-      ? `Full cash out — nothing stays riding.`
+      ? `Full cash out at the live price — nothing stays riding.`
       : `Cashes <b>${fmt(partAmt)} USDT</b> now · <b>${fmt(keepAmt)} USDT</b> of potential stays riding.`;
     const btn = card ? card.querySelector('[data-action="cash-out"]') : null;
     if (btn) {
-      const lbl = f >= 100 ? `💰 Cash out · ${fmt(cash)} USDT` : `💰 Cash out ${f}% · ${fmt(partAmt)} USDT`;
+      const lbl = f >= 100 ? `Hold to cash out · ${fmt(cash)} USDT` : `Hold to cash out ${f}% · ${fmt(partAmt)} USDT`;
       coLabel(btn).textContent = lbl;
       btn._origText = lbl;
     }
